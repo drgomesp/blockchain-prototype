@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -16,7 +15,7 @@ func main() {
 		Name:  "rhz",
 		Usage: "fight the loneliness!",
 		Action: func(c *cli.Context) error {
-			fmt.Println("Hello friend!")
+			log.Println("Hello world!")
 			return nil
 		},
 	}
