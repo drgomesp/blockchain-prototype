@@ -25,3 +25,11 @@ func (n *Node) RegisterAPIs(apis ...*rpc.API) {
 func (n *Node) RegisterServers(servers ...Server) {
 	n.servers = append(n.servers, servers...)
 }
+
+func (n *Node) Servers() []Server {
+	return n.servers
+}
+
+func (n *Node) APIs() []*rpc.API {
+	return n.apis
+}

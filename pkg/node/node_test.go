@@ -29,6 +29,9 @@ func TestNode_RegisterAPIs(t *testing.T) {
 
 	a1, a2 := &rpc.API{}, &rpc.API{}
 	n.RegisterAPIs(a1, a2)
+
+	assert.Containsf(t, n.APIs(), a1, "test node should contain a1 api")
+	assert.Containsf(t, n.APIs(), a2, "test node should contain a2 api")
 }
 
 // Test node register server.
@@ -41,7 +44,8 @@ func TestNode_RegisterServer(t *testing.T) {
 	s1, s2 := new(fakeServer), new(fakeServer)
 	n.RegisterServers(s1, s2)
 
-	assert.True(t, s1.Registered && s2.Registered)
+	assert.Containsf(t, n.Servers(), s1, "test node should contain s1 server")
+	assert.Containsf(t, n.Servers(), s2, "test node should contain s2 server")
 }
 
 type fakeServer struct {
