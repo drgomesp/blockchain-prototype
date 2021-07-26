@@ -10,15 +10,10 @@ import (
 )
 
 type FullNode struct {
-	logger *zap.Logger
+	logger *zap.SugaredLogger
 }
 
-func NewFullNode(node *node.Node) (*FullNode, error) {
-	logger, err := zap.NewDevelopment()
-	if err != nil {
-		return nil, err
-	}
-
+func NewFullNode(logger *zap.SugaredLogger, node *node.Node) (*FullNode, error) {
 	rhz := &FullNode{
 		logger: logger,
 	}
