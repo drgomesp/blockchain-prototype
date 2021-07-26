@@ -1,14 +1,27 @@
 package rhznode
 
 import (
+	"time"
+
 	"github.com/rhizomplatform/rhizom/pkg/node"
+	"github.com/rhizomplatform/rhizom/pkg/p2p"
 	"github.com/rhizomplatform/rhizom/pkg/rpc"
+	"go.uber.org/zap"
 )
 
-type FullNode struct{}
+type FullNode struct {
+	logger *zap.Logger
+}
 
-func New(node *node.Node) (*FullNode, error) {
-	rhz := &FullNode{}
+func NewFullNode(node *node.Node) (*FullNode, error) {
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		return nil, err
+	}
+
+	rhz := &FullNode{
+		logger: logger,
+	}
 
 	node.RegisterAPIs(rhz.APIs()...)
 	node.RegisterServers(rhz.Servers()...)
@@ -16,18 +29,24 @@ func New(node *node.Node) (*FullNode, error) {
 	return rhz, nil
 }
 
+func (n *FullNode) Start() error {
+	for {
+		n.logger.Info("running")
+
+		time.Sleep(time.Second)
+	}
+}
+
+func (n *FullNode) Stop() error {
+	panic("implement me")
+}
+
 func (n *FullNode) APIs() []*rpc.API {
 	return []*rpc.API{}
 }
 
 func (n *FullNode) Servers() []node.Server {
-	return []node.Server{}
-}
-
-func (n *FullNode) Start() error {
-	panic("implement me")
-}
-
-func (n *FullNode) Stop() error {
-	panic("implement me")
+	return []node.Server{
+		p2p.New(),
+	}
 }
