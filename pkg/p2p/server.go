@@ -76,6 +76,10 @@ func NewServer(ctx context.Context, logger *zap.SugaredLogger, config Config) (*
 	return srv, nil
 }
 
+func (s *Server) Name() string {
+	return "p2p"
+}
+
 func (s *Server) Start(ctx context.Context) error {
 	go func() {
 		for {
@@ -95,6 +99,6 @@ func (s *Server) Start(ctx context.Context) error {
 	return nil
 }
 
-func (s *Server) Stop(ctx context.Context) error {
+func (s *Server) Stop(_ context.Context) error {
 	return nil
 }
