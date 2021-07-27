@@ -4,15 +4,15 @@ import "github.com/rhizomplatform/rhizom/pkg/rpc"
 
 // Node implements a multi-protocol node in the Rhizom network.
 type Node struct {
-	cfg *Config
+	config Config
 
 	servers []Server
 	apis    []*rpc.API
 }
 
-func New(cfg *Config) (*Node, error) {
+func New(config Config) (*Node, error) {
 	node := &Node{
-		cfg:     cfg,
+		config:  config,
 		servers: make([]Server, 0),
 		apis:    make([]*rpc.API, 0),
 	}
@@ -26,6 +26,10 @@ func (n *Node) RegisterAPIs(apis ...*rpc.API) {
 
 func (n *Node) RegisterServers(servers ...Server) {
 	n.servers = append(n.servers, servers...)
+}
+
+func (n *Node) Config() Config {
+	return n.config
 }
 
 func (n *Node) Servers() []Server {

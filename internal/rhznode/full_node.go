@@ -17,7 +17,7 @@ type FullNode struct {
 }
 
 func NewFullNode(logger *zap.SugaredLogger) (*FullNode, error) {
-	n, err := node.New(&node.Config{
+	n, err := node.New(node.Config{
 		Type: node.TypeFull,
 		Name: "rhz_node",
 	})
@@ -58,7 +58,7 @@ func (n *FullNode) Start(ctx context.Context) error {
 	}
 
 	for {
-		n.logger.With("servers", started).Info("running")
+		n.logger.With("config", n.node.Config()).Info("running")
 		time.Sleep(time.Second)
 	}
 }
