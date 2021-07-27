@@ -25,6 +25,7 @@ linters:
     - prealloc
     - exhaustivestruct
     - gochecknoinits
+    - typecheck
   fast: false
 
 issues:
