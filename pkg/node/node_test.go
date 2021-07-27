@@ -1,6 +1,7 @@
 package node_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/rhizomplatform/rhizom/pkg/node"
@@ -11,7 +12,7 @@ import (
 // Test node constructor.
 // nolint:paralleltest
 func TestNodeNew(t *testing.T) {
-	n, err := node.New(&node.Config{
+	n, err := node.New(node.Config{
 		Type: node.TypeFull,
 		Name: "test node",
 	})
@@ -24,7 +25,7 @@ func TestNodeNew(t *testing.T) {
 func TestNode_RegisterAPIs(t *testing.T) {
 	t.Parallel()
 
-	n, _ := node.New(&node.Config{
+	n, _ := node.New(node.Config{
 		Type: node.TypeFull,
 		Name: "test node",
 	})
@@ -40,7 +41,7 @@ func TestNode_RegisterAPIs(t *testing.T) {
 func TestNode_RegisterServer(t *testing.T) {
 	t.Parallel()
 
-	n, _ := node.New(&node.Config{
+	n, _ := node.New(node.Config{
 		Type: node.TypeFull,
 		Name: "test node",
 	})
@@ -54,10 +55,14 @@ func TestNode_RegisterServer(t *testing.T) {
 
 type fakeServer struct{}
 
-func (s *fakeServer) Start() error {
+func (s *fakeServer) Name() string {
+	return "fake"
+}
+
+func (s *fakeServer) Start(ctx context.Context) error {
 	return nil
 }
 
-func (s *fakeServer) Stop() error {
+func (s *fakeServer) Stop(ctx context.Context) error {
 	return nil
 }
