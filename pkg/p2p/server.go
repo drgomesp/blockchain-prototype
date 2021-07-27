@@ -6,6 +6,7 @@ import (
 
 	p2p "github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/peer"
 	router "github.com/libp2p/go-libp2p-core/routing"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	secio "github.com/libp2p/go-libp2p-secio"
@@ -20,10 +21,15 @@ import (
 type Server struct {
 	Config
 
-	logger  *zap.SugaredLogger
-	host    host.Host
-	dht     *kaddht.IpfsDHT
-	notifee *notifee
+	logger *zap.SugaredLogger
+	host   host.Host
+	dht    *kaddht.IpfsDHT
+
+	running bool
+
+	// run control channels
+	quit      chan struct{}
+	peerAdded chan peer.AddrInfo
 }
 
 func NewServer(ctx context.Context, logger *zap.SugaredLogger, config Config) (*Server, error) {
@@ -62,16 +68,17 @@ func NewServer(ctx context.Context, logger *zap.SugaredLogger, config Config) (*
 		return nil, errors.Wrap(err, "failed to initialize disc")
 	}
 
-	n := newNotifee()
-	disc.RegisterNotifee(n)
-
 	srv := &Server{
-		Config:  config,
-		logger:  logger,
-		host:    p2pHost,
-		dht:     dht,
-		notifee: n,
+		Config:    config,
+		logger:    logger,
+		host:      p2pHost,
+		dht:       dht,
+		running:   false,
+		quit:      make(chan struct{}),
+		peerAdded: make(chan peer.AddrInfo),
 	}
+
+	disc.RegisterNotifee(srv)
 
 	return srv, nil
 }
@@ -81,24 +88,39 @@ func (s *Server) Name() string {
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				s.logger.With(ctx.Err()).Error("context done")
-			case p := <-s.notifee.PeerChan:
-				if err := s.dht.Host().Connect(ctx, p); err != nil {
-					s.logger.With(ctx.Err()).Error("couldn't connect to peer")
-				}
-
-				s.logger.With("peer", p).Info("connected to peer")
-			}
-		}
-	}()
+	s.running = true
+	go s.run(ctx)
 
 	return nil
 }
 
 func (s *Server) Stop(_ context.Context) error {
 	return nil
+}
+
+func (s *Server) run(ctx context.Context) {
+running:
+	for {
+		select {
+		case <-ctx.Done():
+			s.logger.With(ctx.Err()).Error("context done")
+
+			break running
+
+		case <-s.quit:
+			break running
+
+		case p := <-s.peerAdded:
+			if err := s.dht.Host().Connect(ctx, p); err != nil {
+				s.logger.With(ctx.Err()).Error("couldn't connect to peer")
+			}
+
+			s.logger.With("peer", p).Info("connected to peer")
+		}
+	}
+}
+
+// HandlePeerFound Receive a peer info in an channel.
+func (s *Server) HandlePeerFound(pi peer.AddrInfo) {
+	s.peerAdded <- pi
 }
