@@ -22,6 +22,8 @@ func TestNodeNew(t *testing.T) {
 
 // Test node register apis.
 func TestNode_RegisterAPIs(t *testing.T) {
+	t.Parallel()
+
 	n, _ := node.New(&node.Config{
 		Type: node.TypeFull,
 		Name: "test node",
@@ -36,6 +38,8 @@ func TestNode_RegisterAPIs(t *testing.T) {
 
 // Test node register server.
 func TestNode_RegisterServer(t *testing.T) {
+	t.Parallel()
+
 	n, _ := node.New(&node.Config{
 		Type: node.TypeFull,
 		Name: "test node",
@@ -48,16 +52,12 @@ func TestNode_RegisterServer(t *testing.T) {
 	assert.Containsf(t, n.Servers(), s2, "test node should contain s2 server")
 }
 
-type fakeServer struct {
-	Registered bool
-}
+type fakeServer struct{}
 
 func (s *fakeServer) Start() error {
-	s.Registered = true
 	return nil
 }
 
 func (s *fakeServer) Stop() error {
-	s.Registered = false
 	return nil
 }
