@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 
@@ -27,12 +28,12 @@ func main() {
 				return errors.Wrap(err, "failed to initialized logger")
 			}
 
-			fullNode, err := makeFullNode(logger.Sugar())
+			fullNode, err := makeFullNode(c.Context, logger.Sugar())
 			if err != nil {
 				return errors.Wrap(err, "failed to initialize full node")
 			}
 
-			return errors.Wrap(fullNode.Start(), "failed to run full node")
+			return errors.Wrap(fullNode.Start(c.Context), "failed to run full node")
 		},
 	}
 
@@ -41,7 +42,7 @@ func main() {
 	}
 }
 
-func makeFullNode(logger *zap.SugaredLogger) (*rhznode.FullNode, error) {
+func makeFullNode(ctx context.Context, logger *zap.SugaredLogger) (*rhznode.FullNode, error) {
 	n, err := node.New(&node.Config{
 		Type: node.TypeFull,
 		Name: "rhz_node",
@@ -56,7 +57,7 @@ func makeFullNode(logger *zap.SugaredLogger) (*rhznode.FullNode, error) {
 		return nil, errors.Wrap(err, "failed to initialize full node")
 	}
 
-	if err = rhz.Start(); err != nil {
+	if err = rhz.Start(ctx); err != nil {
 		return nil, errors.Wrap(err, "failed to start full node")
 	}
 

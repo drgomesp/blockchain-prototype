@@ -12,7 +12,9 @@ type Node struct {
 
 func New(cfg *Config) (*Node, error) {
 	node := &Node{
-		cfg: cfg,
+		cfg:     cfg,
+		servers: make([]Server, 0),
+		apis:    make([]*rpc.API, 0),
 	}
 
 	return node, nil
