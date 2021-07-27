@@ -7,7 +7,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/rhizomplatform/rhizom/internal/rhznode"
-	"github.com/rhizomplatform/rhizom/pkg/node"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -42,18 +41,10 @@ func main() {
 	}
 }
 
-func makeFullNode(ctx context.Context, logger *zap.SugaredLogger) (*rhznode.FullNode, error) {
-	n, err := node.New(&node.Config{
-		Type: node.TypeFull,
-		Name: "rhz_node",
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "failed initialize node")
-	}
-
-	var rhz *rhznode.FullNode
-
-	if rhz, err = rhznode.NewFullNode(logger, n); err != nil {
+func makeFullNode(ctx context.Context, logger *zap.SugaredLogger) (
+	rhz *rhznode.FullNode, err error,
+) {
+	if rhz, err = rhznode.NewFullNode(logger); err != nil {
 		return nil, errors.Wrap(err, "failed to initialize full node")
 	}
 

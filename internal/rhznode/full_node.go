@@ -16,10 +16,13 @@ type FullNode struct {
 	logger *zap.SugaredLogger
 }
 
-func NewFullNode(logger *zap.SugaredLogger, node *node.Node) (*FullNode, error) {
-	rhz := &FullNode{
-		node:   node,
-		logger: logger,
+func NewFullNode(logger *zap.SugaredLogger) (*FullNode, error) {
+	n, err := node.New(&node.Config{
+		Type: node.TypeFull,
+		Name: "rhz_node",
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed initialize node")
 	}
 
 	const maxPeers = 5
@@ -32,8 +35,13 @@ func NewFullNode(logger *zap.SugaredLogger, node *node.Node) (*FullNode, error) 
 		return nil, errors.Wrap(err, "failed to initialize p2p server")
 	}
 
-	node.RegisterAPIs(rhz.APIs()...)
-	node.RegisterServers(srv)
+	rhz := &FullNode{
+		node:   n,
+		logger: logger,
+	}
+
+	n.RegisterAPIs(rhz.APIs()...)
+	n.RegisterServers(srv)
 
 	return rhz, nil
 }
