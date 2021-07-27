@@ -27,12 +27,17 @@ func NewFullNode(logger *zap.SugaredLogger) (*FullNode, error) {
 
 	const maxPeers = 5
 
-	srv, err := p2p.NewServer(
+	p2pServer, err := p2p.NewServer(
 		context.Background(),
 		logger, p2p.Config{MaxPeers: maxPeers},
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to initialize p2p server")
+	}
+
+	rpcServer, err := rpc.NewServer()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to initialize rpc server")
 	}
 
 	rhz := &FullNode{
@@ -41,30 +46,29 @@ func NewFullNode(logger *zap.SugaredLogger) (*FullNode, error) {
 	}
 
 	n.RegisterAPIs(rhz.APIs()...)
-	n.RegisterServers(srv)
+	n.RegisterServers(p2pServer, rpcServer)
 
 	return rhz, nil
 }
 
 func (n *FullNode) Start(ctx context.Context) error {
-	var started []node.Server
-
 	for _, srv := range n.node.Servers() {
 		if err := srv.Start(ctx); err != nil {
 			break
 		}
 
-		started = append(started, srv)
+		n.logger.With("name", srv.Name()).Info("server started")
 	}
 
 	for {
-		n.logger.With("config", n.node.Config()).Info("running")
+		n.logger.With("type", n.node.Config().Type, "name", n.node.Config().Name).Info("running")
+
 		time.Sleep(time.Second)
 	}
 }
 
-func (n *FullNode) Stop(ctx context.Context) error {
-	panic("implement me")
+func (n *FullNode) Stop(_ context.Context) error {
+	return nil
 }
 
 func (n *FullNode) APIs() []*rpc.API {
