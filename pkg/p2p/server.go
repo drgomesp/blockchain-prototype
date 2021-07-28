@@ -143,23 +143,15 @@ listening:
 	for {
 		select {
 		case <-ctx.Done():
-			s.quit <- true
+			{
+				s.quit <- true
 
-			break listening
-		case peerInfo := <-s.peerChan.discovered:
-			s.logger.Infow("peer discovered", "peer", peerInfo.ID.ShortString())
-
-			if err := s.dht.Host().Connect(ctx, peerInfo); err != nil {
-				s.logger.Warnw("couldn't connect to peer", "err", err)
-
-				break
+				break listening
 			}
-
-			if _, alreadyConnected := s.peersConnected[peerInfo.ID]; !alreadyConnected {
-				go func() {
-					s.logger.Infow("connecting with peer...", "peer", peerInfo.ID.ShortString())
-					s.establishConnection(peerInfo)
-				}()
+		case peerInfo := <-s.peerChan.discovered:
+			{
+				s.logger.Info("discovered peer ", peerInfo.ID.ShortString())
+				s.AddPeer(ctx, peerInfo)
 			}
 		}
 	}
@@ -170,8 +162,7 @@ func (s *Server) ping(ctx context.Context) {
 	for {
 		for _, p := range s.peersConnected {
 			if err := s.host.Connect(ctx, p); err != nil {
-				delete(s.peersConnected, p.ID)
-				s.logger.Warnw("disconnecting peer", "peer", p)
+				s.RemovePeer(p)
 
 				break
 			}
@@ -202,7 +193,23 @@ running:
 	}
 }
 
-// establishConnection connects the peer to the network.
-func (s *Server) establishConnection(peerInfo peer.AddrInfo) {
+// AddPeer adds a peer to the network.
+func (s *Server) AddPeer(ctx context.Context, peerInfo peer.AddrInfo) {
+	_, isConnected := s.peersConnected[peerInfo.ID]
+	if isConnected {
+		return
+	}
+
+	if err := s.dht.Host().Connect(ctx, peerInfo); err != nil {
+		s.logger.Warnw("couldn't connect to peer", "err", err)
+	}
+
+	s.logger.Infow("peer added", "peer", peerInfo.ID.ShortString())
 	s.peerChan.connected <- peerInfo
+}
+
+// RemovePeer removes a peer from the network.
+func (s *Server) RemovePeer(p peer.AddrInfo) {
+	delete(s.peersConnected, p.ID)
+	s.logger.Warnw("peer removed", "peer", p)
 }
