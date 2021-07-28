@@ -17,10 +17,13 @@ import (
 	"go.uber.org/zap"
 )
 
-type PeerChannels struct {
-	discovered chan peer.AddrInfo
-	connected  chan peer.AddrInfo
+// peerChannels manages channels where peers are sent through.
+type peerChannels struct {
+	discovered chan peer.AddrInfo // discovered peers found through Kademlia DHT
+	connected  chan peer.AddrInfo // connected peers in the network
 }
+
+const ServerName = "p2p.server"
 
 // Server manages p2p connections.
 type Server struct {
@@ -29,13 +32,12 @@ type Server struct {
 	host   host.Host
 	dht    *kaddht.IpfsDHT
 
-	running bool
-
-	// listen control channels
-	quit     chan bool
-	peerChan PeerChannels
+	running  bool         // running controls the run loop
+	quit     chan bool    // quit channel to receive the stop signal
+	peerChan peerChannels // peerChan manages channel-sent peers
 }
 
+// NewServer initializes a p2p Server from a given Config capable of managing a network.
 func NewServer(ctx context.Context, logger *zap.SugaredLogger, config Config) (*Server, error) {
 	srv := &Server{
 		cfg:     config,
@@ -44,7 +46,7 @@ func NewServer(ctx context.Context, logger *zap.SugaredLogger, config Config) (*
 		dht:     new(kaddht.IpfsDHT),
 		running: false,
 		quit:    make(chan bool),
-		peerChan: PeerChannels{
+		peerChan: peerChannels{
 			discovered: make(chan peer.AddrInfo),
 			connected:  make(chan peer.AddrInfo),
 		},
@@ -61,21 +63,28 @@ func NewServer(ctx context.Context, logger *zap.SugaredLogger, config Config) (*
 	return srv, nil
 }
 
-func (s *Server) setupDiscovery(ctx context.Context) error {
-	const serviceTag = "rhizom"
+func (s *Server) Name() string {
+	return ServerName
+}
 
-	disc, err := discovery.NewMdnsService(ctx, s.host, time.Second, serviceTag)
-	if err != nil {
-		return errors.Wrap(err, "failed to initialize disc")
-	}
+func (s *Server) Start(ctx context.Context) error {
+	s.running = true
 
-	disc.RegisterNotifee(s)
+	go s.listen(ctx)
+	go s.run(ctx)
 
 	return nil
 }
 
+func (s *Server) Stop(_ context.Context) error {
+	s.running = false
+
+	return nil
+}
+
+// setupLocalHost sets up the local p2p host.
 func (s *Server) setupLocalHost(ctx context.Context) error {
-	p2pHost, err := p2p.New(
+	h, err := p2p.New(
 		ctx,
 		p2p.ChainOptions(
 			p2p.Transport(tcp.NewTCPTransport),
@@ -101,30 +110,28 @@ func (s *Server) setupLocalHost(ctx context.Context) error {
 		return errors.Wrap(err, "local host setup failed")
 	}
 
-	s.host = p2pHost
+	s.host = h
 
 	return nil
 }
 
-func (s *Server) setupPeerConnection(peerInfo peer.AddrInfo) {
+// setupDiscovery sets up the peer discovery mechanism.
+func (s *Server) setupDiscovery(ctx context.Context) error {
+	const serviceTag = "rhizom"
+
+	disc, err := discovery.NewMdnsService(ctx, s.host, time.Second, serviceTag)
+	if err != nil {
+		return errors.Wrap(err, "failed to initialize disc")
+	}
+
+	disc.RegisterNotifee(s)
+
+	return nil
+}
+
+// addPeer adds a peer to the network.
+func (s *Server) addPeer(peerInfo peer.AddrInfo) {
 	s.peerChan.connected <- peerInfo
-}
-
-func (s *Server) Name() string {
-	return "p2p"
-}
-
-func (s *Server) Start(ctx context.Context) error {
-	s.running = true
-
-	go s.listen(ctx)
-	go s.run(ctx)
-
-	return nil
-}
-
-func (s *Server) Stop(_ context.Context) error {
-	return nil
 }
 
 func (s *Server) listen(ctx context.Context) {
@@ -146,7 +153,7 @@ listening:
 
 			go func() {
 				s.logger.Infow("trying to connect to peer", "peer", peerInfo.ID.Pretty())
-				s.setupPeerConnection(peerInfo)
+				s.addPeer(peerInfo)
 			}()
 		}
 	}
@@ -154,7 +161,7 @@ listening:
 
 func (s *Server) run(_ context.Context) {
 running:
-	for {
+	for s.running {
 		select {
 		case <-s.quit:
 			break running
@@ -162,9 +169,4 @@ running:
 			s.logger.Infow("peer connected", "peer", peerInfo.ID.Pretty())
 		}
 	}
-}
-
-// HandlePeerFound Receive a peer info in an channel.
-func (s *Server) HandlePeerFound(peerInfo peer.AddrInfo) {
-	s.peerChan.discovered <- peerInfo
 }
