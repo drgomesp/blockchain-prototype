@@ -21,18 +21,10 @@ func main() {
 		Name:  "rhznode",
 		Usage: "fight the loneliness!",
 		Action: func(c *cli.Context) (err error) {
-			config := zap.NewDevelopmentConfig()
-			config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-			config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(time.Kitchen)
-			logger, err := config.Build()
-			if err != nil {
-				return errors.Wrap(err, "failed to initialized logger")
-			}
-
 			ctx, cancelFunc := context.WithCancel(c.Context)
 			defer cancelFunc()
 
-			fullNode, err := makeFullNode(ctx, logger.Sugar())
+			fullNode, err := makeFullNode(ctx)
 			if err != nil {
 				return errors.Wrap(err, "failed to initialize full node")
 			}
@@ -46,10 +38,28 @@ func main() {
 	}
 }
 
-func makeFullNode(ctx context.Context, logger *zap.SugaredLogger) (
-	rhz *rhznode.FullNode, err error,
-) {
-	if rhz, err = rhznode.NewFullNode(ctx, logger); err != nil {
+func buildLogger() (*zap.Logger, error) {
+	config := zap.NewDevelopmentConfig()
+	config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(time.Kitchen)
+
+	logger, err := config.Build()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to initialized logger")
+	}
+
+	return logger, nil
+}
+
+func makeFullNode(ctx context.Context) (*rhznode.FullNode, error) {
+	logger, err := buildLogger()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to initialize logger")
+	}
+
+	var rhz *rhznode.FullNode
+
+	if rhz, err = rhznode.NewFullNode(ctx, logger.Sugar()); err != nil {
 		return nil, errors.Wrap(err, "failed to initialize full node")
 	}
 
