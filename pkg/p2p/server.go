@@ -65,6 +65,11 @@ func NewServer(ctx context.Context, logger *zap.SugaredLogger, config Config) (*
 	return srv, nil
 }
 
+// HandlePeerFound receives a discovered peer.
+func (s *Server) HandlePeerFound(peerInfo peer.AddrInfo) {
+	s.peerChan.discovered <- peerInfo
+}
+
 func (s *Server) Name() string {
 	return ServerName
 }
@@ -132,11 +137,6 @@ func (s *Server) setupDiscovery(ctx context.Context) error {
 	return nil
 }
 
-// establishConnection connects the peer to the network.
-func (s *Server) establishConnection(peerInfo peer.AddrInfo) {
-	s.peerChan.connected <- peerInfo
-}
-
 // discover for incoming discovered peers.
 func (s *Server) discover(ctx context.Context) {
 listening:
@@ -200,4 +200,9 @@ running:
 
 		time.Sleep(time.Second)
 	}
+}
+
+// establishConnection connects the peer to the network.
+func (s *Server) establishConnection(peerInfo peer.AddrInfo) {
+	s.peerChan.connected <- peerInfo
 }
