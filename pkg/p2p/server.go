@@ -33,8 +33,41 @@ type Server struct {
 }
 
 func NewServer(ctx context.Context, logger *zap.SugaredLogger, config Config) (*Server, error) {
-	var dht *kaddht.IpfsDHT
+	srv := &Server{
+		Config:    config,
+		logger:    logger,
+		host:      nil,
+		dht:       new(kaddht.IpfsDHT),
+		running:   false,
+		quit:      make(chan struct{}),
+		peerAdded: make(chan peer.AddrInfo),
+	}
 
+	if err := srv.setupLocalHost(ctx); err != nil {
+		return nil, errors.Wrap(err, "failed to initialize host")
+	}
+
+	if err := srv.setupDiscovery(ctx); err != nil {
+		return nil, errors.Wrap(err, "failed to initialize discovery")
+	}
+
+	return srv, nil
+}
+
+func (s *Server) setupDiscovery(ctx context.Context) error {
+	const serviceTag = "rhizom"
+
+	disc, err := discovery.NewMdnsService(ctx, s.host, time.Second, serviceTag)
+	if err != nil {
+		return errors.Wrap(err, "failed to initialize disc")
+	}
+
+	disc.RegisterNotifee(s)
+
+	return nil
+}
+
+func (s *Server) setupLocalHost(ctx context.Context) error {
 	p2pHost, err := p2p.New(
 		ctx,
 		p2p.ChainOptions(
@@ -49,38 +82,21 @@ func NewServer(ctx context.Context, logger *zap.SugaredLogger, config Config) (*
 		p2p.Security(secio.ID, secio.New),
 		p2p.Routing(func(h host.Host) (router.PeerRouting, error) {
 			var err error
-			dht, err = kaddht.New(ctx, h)
+			s.dht, err = kaddht.New(ctx, h)
 			if err != nil {
 				return nil, errors.Wrap(err, "failed to initialize dht")
 			}
 
-			return dht, nil
+			return s.dht, nil
 		}),
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to initialize host")
+		return errors.Wrap(err, "local host setup failed")
 	}
 
-	const serviceTag = "rhizom"
+	s.host = p2pHost
 
-	disc, err := discovery.NewMdnsService(ctx, p2pHost, time.Second, serviceTag)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to initialize disc")
-	}
-
-	srv := &Server{
-		Config:    config,
-		logger:    logger,
-		host:      p2pHost,
-		dht:       dht,
-		running:   false,
-		quit:      make(chan struct{}),
-		peerAdded: make(chan peer.AddrInfo),
-	}
-
-	disc.RegisterNotifee(srv)
-
-	return srv, nil
+	return nil
 }
 
 func (s *Server) Name() string {
