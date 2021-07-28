@@ -27,7 +27,10 @@ func NewFullNode(ctx context.Context, logger *zap.SugaredLogger) (*FullNode, err
 
 	const maxPeers = 5
 
-	p2pServer, err := p2p.NewServer(ctx, logger, p2p.Config{MaxPeers: maxPeers})
+	p2pServer, err := p2p.NewServer(ctx, logger, p2p.Config{
+		MaxPeers:    maxPeers,
+		PingTimeout: time.Second * 5,
+	})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to initialize p2p server")
 	}
@@ -62,15 +65,15 @@ func (n *FullNode) Start(ctx context.Context) error {
 		case <-ctx.Done():
 			return n.Stop(ctx)
 		default:
-			n.logger.With("type", n.node.Config().Type, "name", n.node.Config().Name).Info("running")
-
-			time.Sleep(time.Second)
+			{
+			}
 		}
 	}
 }
 
 func (n *FullNode) Stop(_ context.Context) error {
 	n.logger.Infow("stopping node", "name", n.node.Config().Name)
+
 	return nil
 }
 

@@ -1,5 +1,8 @@
 package p2p
 
+import "time"
+
 type Config struct {
-	MaxPeers uint
+	MaxPeers    uint
+	PingTimeout time.Duration
 }
