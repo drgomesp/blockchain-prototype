@@ -150,7 +150,7 @@ listening:
 			s.logger.Infow("peer discovered", "peer", peerInfo.ID.ShortString())
 
 			if err := s.dht.Host().Connect(ctx, peerInfo); err != nil {
-				s.logger.With(ctx.Err()).Error("couldn't connect to peer")
+				s.logger.Warnw("couldn't connect to peer", "err", err)
 
 				break
 			}
