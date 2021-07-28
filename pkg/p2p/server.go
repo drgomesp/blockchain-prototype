@@ -76,12 +76,14 @@ func (s *Server) Name() string {
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	s.running = true
-
-	go s.connectBootstrapPeers(ctx)
 	go s.discover(ctx)
 	go s.ping(ctx)
 	go s.run(ctx)
+
+	s.running = true
+
+	s.connectBootstrapPeers(ctx)
+	s.bootstrap(ctx)
 
 	return nil
 }
@@ -141,7 +143,7 @@ func (s *Server) setupDiscovery(ctx context.Context) error {
 
 // connectBootstrapPeers connects to all bootstrap peers.
 func (s *Server) connectBootstrapPeers(ctx context.Context) {
-	s.logger.Info("connecting to connectBootstrapPeers peers")
+	s.logger.Info("connecting to bootstrap peers")
 
 	peerInfos := make([]peer.AddrInfo, len(s.cfg.BootstrapAddrs))
 
@@ -172,9 +174,26 @@ bootstrap:
 			}
 		}
 
-		s.logger.Info("done connecting to connectBootstrapPeers peers")
-
 		break bootstrap
+	}
+
+	s.logger.Info("done connecting to bootstrap peers")
+}
+
+// bootstrap the network.
+func (s *Server) bootstrap(ctx context.Context) {
+	select {
+	case <-ctx.Done():
+		return
+	default:
+		// just calls RefreshRoutingTable -> tells the DHT to refresh it's routing tables.
+		if err := s.dht.Bootstrap(ctx); err != nil {
+			s.logger.Error("failed to bootstrap network ", err)
+		}
+
+		s.logger.Info("bootstrapped network")
+
+		return
 	}
 }
 
@@ -226,8 +245,6 @@ running:
 			{
 				s.peersConnected[peerInfo.ID] = peerInfo
 				s.logger.Info("peer added ", peerInfo.ID.ShortString())
-
-				break
 			}
 		default:
 			{
@@ -249,10 +266,12 @@ func (s *Server) AddPeer(ctx context.Context, peerInfo peer.AddrInfo) {
 
 		if err := s.dht.Host().Connect(ctx, peerInfo); err != nil {
 			s.logger.Warnw("couldn't connect to peer", "err", err)
+
 			continue
 		}
 
 		s.peerChan.connected <- peerInfo
+
 		break
 	}
 }
