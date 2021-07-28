@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/rhizomplatform/rhizom/internal/rhznode"
@@ -22,6 +23,7 @@ func main() {
 		Action: func(c *cli.Context) (err error) {
 			config := zap.NewDevelopmentConfig()
 			config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+			config.EncoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout(time.Kitchen)
 			logger, err := config.Build()
 			if err != nil {
 				return errors.Wrap(err, "failed to initialized logger")
