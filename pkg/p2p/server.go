@@ -19,8 +19,7 @@ import (
 
 // Server manages p2p connections.
 type Server struct {
-	Config
-
+	cfg    Config
 	logger *zap.SugaredLogger
 	host   host.Host
 	dht    *kaddht.IpfsDHT
@@ -28,19 +27,21 @@ type Server struct {
 	running bool
 
 	// listen control channels
-	quit      chan struct{}
-	peerAdded chan peer.AddrInfo
+	quit            chan bool
+	peersDiscovered chan peer.AddrInfo
+	peersConnected  chan peer.AddrInfo
 }
 
 func NewServer(ctx context.Context, logger *zap.SugaredLogger, config Config) (*Server, error) {
 	srv := &Server{
-		Config:    config,
-		logger:    logger,
-		host:      nil,
-		dht:       new(kaddht.IpfsDHT),
-		running:   false,
-		quit:      make(chan struct{}),
-		peerAdded: make(chan peer.AddrInfo),
+		cfg:             config,
+		logger:          logger,
+		host:            nil,
+		dht:             new(kaddht.IpfsDHT),
+		running:         false,
+		quit:            make(chan bool),
+		peersDiscovered: make(chan peer.AddrInfo),
+		peersConnected:  make(chan peer.AddrInfo),
 	}
 
 	if err := srv.setupLocalHost(ctx); err != nil {
@@ -99,6 +100,10 @@ func (s *Server) setupLocalHost(ctx context.Context) error {
 	return nil
 }
 
+func (s *Server) setupPeerConnection(peerInfo peer.AddrInfo) {
+	s.peersConnected <- peerInfo
+}
+
 func (s *Server) Name() string {
 	return "p2p"
 }
@@ -121,13 +126,22 @@ listening:
 	for {
 		select {
 		case <-ctx.Done():
+			s.quit <- true
+
 			break listening
-		case p := <-s.peerAdded:
-			if err := s.dht.Host().Connect(ctx, p); err != nil {
+		case peerInfo := <-s.peersDiscovered:
+			s.logger.Infow("peer discovered", "peer", peerInfo.ID.Pretty())
+
+			if err := s.dht.Host().Connect(ctx, peerInfo); err != nil {
 				s.logger.With(ctx.Err()).Error("couldn't connect to peer")
+
+				continue
 			}
 
-			s.logger.With("peer", p).Info("connected to peer")
+			go func() {
+				s.logger.Infow("trying to connect to peer", "peer", peerInfo.ID.Pretty())
+				s.setupPeerConnection(peerInfo)
+			}()
 		}
 	}
 }
@@ -138,14 +152,13 @@ running:
 		select {
 		case <-s.quit:
 			break running
-		default:
-			{
-			}
+		case peerInfo := <-s.peersConnected:
+			s.logger.Infow("peer connected", "peer", peerInfo.ID.Pretty())
 		}
 	}
 }
 
 // HandlePeerFound Receive a peer info in an channel.
-func (s *Server) HandlePeerFound(pi peer.AddrInfo) {
-	s.peerAdded <- pi
+func (s *Server) HandlePeerFound(peerInfo peer.AddrInfo) {
+	s.peersDiscovered <- peerInfo
 }
