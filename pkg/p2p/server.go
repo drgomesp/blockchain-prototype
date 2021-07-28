@@ -72,7 +72,7 @@ func (s *Server) Name() string {
 func (s *Server) Start(ctx context.Context) error {
 	s.running = true
 
-	go s.listen(ctx)
+	go s.discover(ctx)
 	go s.ping(ctx)
 	go s.run(ctx)
 
@@ -137,7 +137,8 @@ func (s *Server) establishConnection(peerInfo peer.AddrInfo) {
 	s.peerChan.connected <- peerInfo
 }
 
-func (s *Server) listen(ctx context.Context) {
+// discover for incoming discovered peers.
+func (s *Server) discover(ctx context.Context) {
 listening:
 	for {
 		select {
@@ -164,6 +165,25 @@ listening:
 	}
 }
 
+// ping connected peers regularly.
+func (s *Server) ping(ctx context.Context) {
+	for {
+		for _, p := range s.peersConnected {
+			if err := s.host.Connect(ctx, p); err != nil {
+				delete(s.peersConnected, p.ID)
+				s.logger.Warnw("disconnecting peer", "peer", p)
+
+				break
+			}
+
+			s.logger.Debugw("ping", "peer", p.ID.ShortString())
+		}
+
+		time.Sleep(s.cfg.PingTimeout)
+	}
+}
+
+// run the main server loop.
 func (s *Server) run(_ context.Context) {
 running:
 	for s.running {
@@ -179,22 +199,5 @@ running:
 		}
 
 		time.Sleep(time.Second)
-	}
-}
-
-func (s *Server) ping(ctx context.Context) {
-	for {
-		for _, p := range s.peersConnected {
-			if err := s.host.Connect(ctx, p); err != nil {
-				delete(s.peersConnected, p.ID)
-				s.logger.Warnw("disconnecting peer", "peer", p)
-
-				break
-			}
-
-			s.logger.Debugw("ping", "peer", p.ID.ShortString())
-		}
-
-		time.Sleep(s.cfg.PingTimeout)
 	}
 }
