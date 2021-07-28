@@ -17,6 +17,11 @@ import (
 	"go.uber.org/zap"
 )
 
+type PeerChannels struct {
+	discovered chan peer.AddrInfo
+	connected  chan peer.AddrInfo
+}
+
 // Server manages p2p connections.
 type Server struct {
 	cfg    Config
@@ -27,21 +32,22 @@ type Server struct {
 	running bool
 
 	// listen control channels
-	quit            chan bool
-	peersDiscovered chan peer.AddrInfo
-	peersConnected  chan peer.AddrInfo
+	quit     chan bool
+	peerChan PeerChannels
 }
 
 func NewServer(ctx context.Context, logger *zap.SugaredLogger, config Config) (*Server, error) {
 	srv := &Server{
-		cfg:             config,
-		logger:          logger,
-		host:            nil,
-		dht:             new(kaddht.IpfsDHT),
-		running:         false,
-		quit:            make(chan bool),
-		peersDiscovered: make(chan peer.AddrInfo),
-		peersConnected:  make(chan peer.AddrInfo),
+		cfg:     config,
+		logger:  logger,
+		host:    nil,
+		dht:     new(kaddht.IpfsDHT),
+		running: false,
+		quit:    make(chan bool),
+		peerChan: PeerChannels{
+			discovered: make(chan peer.AddrInfo),
+			connected:  make(chan peer.AddrInfo),
+		},
 	}
 
 	if err := srv.setupLocalHost(ctx); err != nil {
@@ -101,7 +107,7 @@ func (s *Server) setupLocalHost(ctx context.Context) error {
 }
 
 func (s *Server) setupPeerConnection(peerInfo peer.AddrInfo) {
-	s.peersConnected <- peerInfo
+	s.peerChan.connected <- peerInfo
 }
 
 func (s *Server) Name() string {
@@ -129,7 +135,7 @@ listening:
 			s.quit <- true
 
 			break listening
-		case peerInfo := <-s.peersDiscovered:
+		case peerInfo := <-s.peerChan.discovered:
 			s.logger.Infow("peer discovered", "peer", peerInfo.ID.Pretty())
 
 			if err := s.dht.Host().Connect(ctx, peerInfo); err != nil {
@@ -152,7 +158,7 @@ running:
 		select {
 		case <-s.quit:
 			break running
-		case peerInfo := <-s.peersConnected:
+		case peerInfo := <-s.peerChan.connected:
 			s.logger.Infow("peer connected", "peer", peerInfo.ID.Pretty())
 		}
 	}
@@ -160,5 +166,5 @@ running:
 
 // HandlePeerFound Receive a peer info in an channel.
 func (s *Server) HandlePeerFound(peerInfo peer.AddrInfo) {
-	s.peersDiscovered <- peerInfo
+	s.peerChan.discovered <- peerInfo
 }

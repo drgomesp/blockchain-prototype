@@ -27,12 +27,15 @@ func main() {
 				return errors.Wrap(err, "failed to initialized logger")
 			}
 
-			fullNode, err := makeFullNode(c.Context, logger.Sugar())
+			ctx, cancelFunc := context.WithCancel(c.Context)
+			defer cancelFunc()
+
+			fullNode, err := makeFullNode(ctx, logger.Sugar())
 			if err != nil {
 				return errors.Wrap(err, "failed to initialize full node")
 			}
 
-			return errors.Wrap(fullNode.Start(c.Context), "failed to run full node")
+			return errors.Wrap(fullNode.Start(ctx), "failed to run full node")
 		},
 	}
 
@@ -44,7 +47,7 @@ func main() {
 func makeFullNode(ctx context.Context, logger *zap.SugaredLogger) (
 	rhz *rhznode.FullNode, err error,
 ) {
-	if rhz, err = rhznode.NewFullNode(logger); err != nil {
+	if rhz, err = rhznode.NewFullNode(ctx, logger); err != nil {
 		return nil, errors.Wrap(err, "failed to initialize full node")
 	}
 
