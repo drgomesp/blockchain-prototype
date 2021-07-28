@@ -26,6 +26,7 @@ linters:
     - exhaustivestruct
     - gochecknoinits
     - typecheck
+    - gochecknoglobals
   fast: false
 
 issues:
