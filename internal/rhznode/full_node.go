@@ -11,6 +11,11 @@ import (
 	"go.uber.org/zap"
 )
 
+var BootstrapAddrs = []string{
+	"/dns4/bootstrapper-1.rhz.network/tcp/4001/ipfs/Qmf8Lt1FiQnG7tLrQbhwvUXzBMYsj6KicNdKiD1F2rSRW5",
+	"/dns4/bootstrapper-2.rhz.network/tcp/4001/ipfs/QmcRoi1mQ7eb7xPDhWZjGL8rivAUHwCv1FMiLw7FGSZvFL",
+}
+
 type FullNode struct {
 	node   *node.Node
 	logger *zap.SugaredLogger
@@ -28,8 +33,9 @@ func NewFullNode(ctx context.Context, logger *zap.SugaredLogger) (*FullNode, err
 	const maxPeers = 5
 
 	p2pServer, err := p2p.NewServer(ctx, logger, p2p.Config{
-		MaxPeers:    maxPeers,
-		PingTimeout: time.Second * 5,
+		MaxPeers:       maxPeers,
+		PingTimeout:    time.Second * 5,
+		BootstrapAddrs: BootstrapAddrs,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to initialize p2p server")

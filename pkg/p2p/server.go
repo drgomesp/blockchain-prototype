@@ -13,6 +13,7 @@ import (
 	yamux "github.com/libp2p/go-libp2p-yamux"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	"github.com/libp2p/go-tcp-transport"
+	"github.com/multiformats/go-multiaddr"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
@@ -77,6 +78,7 @@ func (s *Server) Name() string {
 func (s *Server) Start(ctx context.Context) error {
 	s.running = true
 
+	go s.connectBootstrapPeers(ctx)
 	go s.discover(ctx)
 	go s.ping(ctx)
 	go s.run(ctx)
@@ -137,6 +139,45 @@ func (s *Server) setupDiscovery(ctx context.Context) error {
 	return nil
 }
 
+// connectBootstrapPeers connects to all bootstrap peers.
+func (s *Server) connectBootstrapPeers(ctx context.Context) {
+	s.logger.Info("connecting to connectBootstrapPeers peers")
+
+	peerInfos := make([]peer.AddrInfo, len(s.cfg.BootstrapAddrs))
+
+bootstrap:
+	for {
+		for i, addr := range s.cfg.BootstrapAddrs {
+			peerAddr, err := multiaddr.NewMultiaddr(addr)
+			if err != nil {
+				s.logger.Error("failed to initialize multiaddr: ", err)
+
+				continue
+			}
+
+			peerInfo, err := peer.AddrInfoFromP2pAddr(peerAddr)
+			if err != nil {
+				s.logger.Error("failed to load addr info from multiaddr: ", err)
+
+				continue
+			}
+
+			s.AddPeer(ctx, *peerInfo)
+			peerInfos[i] = *peerInfo
+		}
+
+		for _, peerInfo := range peerInfos {
+			if _, ok := s.peersConnected[peerInfo.ID]; !ok {
+				continue bootstrap
+			}
+		}
+
+		s.logger.Info("done connecting to connectBootstrapPeers peers")
+
+		break bootstrap
+	}
+}
+
 // discover for incoming discovered peers.
 func (s *Server) discover(ctx context.Context) {
 listening:
@@ -151,7 +192,7 @@ listening:
 		case peerInfo := <-s.peerChan.discovered:
 			{
 				s.logger.Info("peer discovered ", peerInfo.ID.ShortString())
-				s.AddPeer(ctx, peerInfo)
+				go s.AddPeer(ctx, peerInfo)
 			}
 		}
 	}
@@ -200,16 +241,20 @@ running:
 
 // AddPeer adds a peer to the network.
 func (s *Server) AddPeer(ctx context.Context, peerInfo peer.AddrInfo) {
-	_, isConnected := s.peersConnected[peerInfo.ID]
-	if isConnected {
-		return
-	}
+	for {
+		_, isConnected := s.peersConnected[peerInfo.ID]
+		if isConnected {
+			return
+		}
 
-	if err := s.dht.Host().Connect(ctx, peerInfo); err != nil {
-		s.logger.Warnw("couldn't connect to peer", "err", err)
-	}
+		if err := s.dht.Host().Connect(ctx, peerInfo); err != nil {
+			s.logger.Warnw("couldn't connect to peer", "err", err)
+			continue
+		}
 
-	s.peerChan.connected <- peerInfo
+		s.peerChan.connected <- peerInfo
+		break
+	}
 }
 
 // RemovePeer removes a peer from the network.
