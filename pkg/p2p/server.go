@@ -32,9 +32,10 @@ type Server struct {
 	host   host.Host
 	dht    *kaddht.IpfsDHT
 
-	running  bool         // running controls the run loop
-	quit     chan bool    // quit channel to receive the stop signal
-	peerChan peerChannels // peerChan manages channel-sent peers
+	running        bool                      // running controls the run loop
+	quit           chan bool                 // quit channel to receive the stop signal
+	peerChan       peerChannels              // peerChan manages channel-sent peers
+	peersConnected map[peer.ID]peer.AddrInfo // peersConnected holds recently connected peers
 }
 
 // NewServer initializes a p2p Server from a given Config capable of managing a network.
@@ -50,6 +51,7 @@ func NewServer(ctx context.Context, logger *zap.SugaredLogger, config Config) (*
 			discovered: make(chan peer.AddrInfo),
 			connected:  make(chan peer.AddrInfo),
 		},
+		peersConnected: make(map[peer.ID]peer.AddrInfo),
 	}
 
 	if err := srv.setupLocalHost(ctx); err != nil {
@@ -71,6 +73,7 @@ func (s *Server) Start(ctx context.Context) error {
 	s.running = true
 
 	go s.listen(ctx)
+	go s.ping(ctx)
 	go s.run(ctx)
 
 	return nil
@@ -129,8 +132,8 @@ func (s *Server) setupDiscovery(ctx context.Context) error {
 	return nil
 }
 
-// addPeer adds a peer to the network.
-func (s *Server) addPeer(peerInfo peer.AddrInfo) {
+// establishConnection connects the peer to the network.
+func (s *Server) establishConnection(peerInfo peer.AddrInfo) {
 	s.peerChan.connected <- peerInfo
 }
 
@@ -143,18 +146,20 @@ listening:
 
 			break listening
 		case peerInfo := <-s.peerChan.discovered:
-			s.logger.Infow("peer discovered", "peer", peerInfo.ID.Pretty())
+			s.logger.Infow("peer discovered", "peer", peerInfo.ID.ShortString())
 
 			if err := s.dht.Host().Connect(ctx, peerInfo); err != nil {
 				s.logger.With(ctx.Err()).Error("couldn't connect to peer")
 
-				continue
+				break
 			}
 
-			go func() {
-				s.logger.Infow("trying to connect to peer", "peer", peerInfo.ID.Pretty())
-				s.addPeer(peerInfo)
-			}()
+			if _, alreadyConnected := s.peersConnected[peerInfo.ID]; !alreadyConnected {
+				go func() {
+					s.logger.Infow("connecting with peer...", "peer", peerInfo.ID.ShortString())
+					s.establishConnection(peerInfo)
+				}()
+			}
 		}
 	}
 }
@@ -166,7 +171,30 @@ running:
 		case <-s.quit:
 			break running
 		case peerInfo := <-s.peerChan.connected:
-			s.logger.Infow("peer connected", "peer", peerInfo.ID.Pretty())
+			s.peersConnected[peerInfo.ID] = peerInfo
+
+			break
+		default:
+			s.logger.Infow("running", "peers", len(s.peersConnected))
 		}
+
+		time.Sleep(time.Second)
+	}
+}
+
+func (s *Server) ping(ctx context.Context) {
+	for {
+		for _, p := range s.peersConnected {
+			if err := s.host.Connect(ctx, p); err != nil {
+				delete(s.peersConnected, p.ID)
+				s.logger.Warnw("disconnecting peer", "peer", p)
+
+				break
+			}
+
+			s.logger.Debugw("ping", "peer", p.ID.ShortString())
+		}
+
+		time.Sleep(s.cfg.PingTimeout)
 	}
 }
