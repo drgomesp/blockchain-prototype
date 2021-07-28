@@ -150,7 +150,7 @@ listening:
 			}
 		case peerInfo := <-s.peerChan.discovered:
 			{
-				s.logger.Info("discovered peer ", peerInfo.ID.ShortString())
+				s.logger.Info("peer discovered ", peerInfo.ID.ShortString())
 				s.AddPeer(ctx, peerInfo)
 			}
 		}
@@ -167,7 +167,7 @@ func (s *Server) ping(ctx context.Context) {
 				break
 			}
 
-			s.logger.Debugw("ping", "peer", p.ID.ShortString())
+			s.logger.Debug("peer check ", p.ID.ShortString())
 		}
 
 		time.Sleep(s.cfg.PingTimeout)
@@ -182,14 +182,19 @@ running:
 		case <-s.quit:
 			break running
 		case peerInfo := <-s.peerChan.connected:
-			s.peersConnected[peerInfo.ID] = peerInfo
+			{
+				s.peersConnected[peerInfo.ID] = peerInfo
+				s.logger.Info("peer added ", peerInfo.ID.ShortString())
 
-			break
+				break
+			}
 		default:
-			s.logger.Infow("running", "peers", len(s.peersConnected))
-		}
+			{
+				s.logger.Info("connected peers: ", len(s.peersConnected))
 
-		time.Sleep(time.Second)
+				time.Sleep(time.Second)
+			}
+		}
 	}
 }
 
@@ -204,12 +209,11 @@ func (s *Server) AddPeer(ctx context.Context, peerInfo peer.AddrInfo) {
 		s.logger.Warnw("couldn't connect to peer", "err", err)
 	}
 
-	s.logger.Infow("peer added", "peer", peerInfo.ID.ShortString())
 	s.peerChan.connected <- peerInfo
 }
 
 // RemovePeer removes a peer from the network.
-func (s *Server) RemovePeer(p peer.AddrInfo) {
-	delete(s.peersConnected, p.ID)
-	s.logger.Warnw("peer removed", "peer", p)
+func (s *Server) RemovePeer(peerInfo peer.AddrInfo) {
+	delete(s.peersConnected, peerInfo.ID)
+	s.logger.Info("peer removed ", peerInfo.ID.ShortString())
 }
