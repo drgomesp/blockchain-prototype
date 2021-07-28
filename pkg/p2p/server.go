@@ -27,7 +27,7 @@ type Server struct {
 
 	running bool
 
-	// run control channels
+	// listen control channels
 	quit      chan struct{}
 	peerAdded chan peer.AddrInfo
 }
@@ -105,6 +105,8 @@ func (s *Server) Name() string {
 
 func (s *Server) Start(ctx context.Context) error {
 	s.running = true
+
+	go s.listen(ctx)
 	go s.run(ctx)
 
 	return nil
@@ -114,24 +116,31 @@ func (s *Server) Stop(_ context.Context) error {
 	return nil
 }
 
-func (s *Server) run(ctx context.Context) {
-running:
+func (s *Server) listen(ctx context.Context) {
+listening:
 	for {
 		select {
 		case <-ctx.Done():
-			s.logger.With(ctx.Err()).Error("context done")
-
-			break running
-
-		case <-s.quit:
-			break running
-
+			break listening
 		case p := <-s.peerAdded:
 			if err := s.dht.Host().Connect(ctx, p); err != nil {
 				s.logger.With(ctx.Err()).Error("couldn't connect to peer")
 			}
 
 			s.logger.With("peer", p).Info("connected to peer")
+		}
+	}
+}
+
+func (s *Server) run(_ context.Context) {
+running:
+	for {
+		select {
+		case <-s.quit:
+			break running
+		default:
+			{
+			}
 		}
 	}
 }
