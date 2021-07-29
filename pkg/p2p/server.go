@@ -9,6 +9,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	router "github.com/libp2p/go-libp2p-core/routing"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	secio "github.com/libp2p/go-libp2p-secio"
 	yamux "github.com/libp2p/go-libp2p-yamux"
 	"github.com/libp2p/go-tcp-transport"
@@ -32,6 +33,7 @@ type Server struct {
 	logger *zap.SugaredLogger
 	node   Node
 	dht    *kaddht.IpfsDHT
+	pubSub *pubsub.PubSub
 
 	running        bool              // running controls the run loop
 	quit           chan bool         // quit channel to receive the stop signal
@@ -63,6 +65,10 @@ func NewServer(ctx context.Context, logger *zap.SugaredLogger, config Config) (*
 		return nil, errors.Wrap(err, "failed to initialize discovery")
 	}
 
+	if err := srv.setupPubSub(ctx); err != nil {
+		return nil, errors.Wrap(err, "failed to initialize pubsub")
+	}
+
 	return srv, nil
 }
 
@@ -89,7 +95,7 @@ func (s *Server) Start(ctx context.Context) error {
 
 	s.connectBootstrapPeers(ctx)
 	s.bootstrapNetwork(ctx)
-	s.setupPeerSubscriptions(ctx)
+	s.setupSubscriptions(ctx)
 
 	return nil
 }
