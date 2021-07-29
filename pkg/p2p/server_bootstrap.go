@@ -9,7 +9,7 @@ import (
 
 // connectBootstrapPeers connects to all bootstrap peers.
 func (s *Server) connectBootstrapPeers(ctx context.Context) {
-	s.logger.Info("connecting to bootstrap peers")
+	s.logger.Debug("connecting to bootstrap peers")
 
 	connected := make([]*Peer, len(s.cfg.BootstrapAddrs))
 
@@ -48,7 +48,7 @@ bootstrap:
 		break bootstrap
 	}
 
-	s.logger.Info("connected to bootstrap peers")
+	s.logger.Debug("connected to bootstrap peers")
 }
 
 // bootstrapNetwork the network.
@@ -61,7 +61,7 @@ func (s *Server) bootstrapNetwork(ctx context.Context) {
 			s.logger.Error("failed to bootstrap network ", err)
 		}
 
-		s.logger.Info("bootstrapped network")
+		s.logger.Debug("bootstrapped network")
 
 		return
 	}

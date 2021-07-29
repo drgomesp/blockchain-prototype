@@ -160,11 +160,11 @@ running:
 		case p := <-s.peerChan.connected:
 			{
 				s.peersConnected[p.Info.ID] = p
-				s.logger.Info("peer added ", p)
+				s.logger.Debug("peer added ", p)
 			}
 		case <-time.After(networkStatePeriod):
 			{
-				s.logger.Debugw("online", "connected", len(s.peersConnected))
+				s.logger.Infow("online", "connected", len(s.peersConnected))
 			}
 		}
 	}
@@ -175,23 +175,26 @@ func (s *Server) AddPeer(ctx context.Context, peer *Peer) {
 	for {
 		var err error
 
-		_, isConnected := s.peersConnected[peer.Info.ID]
-		if isConnected {
+		if s.PeerConnected(peer) {
 			return
 		}
 
 		if err = s.dht.Host().Connect(ctx, peer.Info); err != nil {
 			s.logger.Warnw("couldn't connect to peer", "err", err)
+
 			continue
 		}
 
 		var p *Peer
+
 		if p, err = NewPeer(peer.Info); err != nil {
 			s.logger.Error("failed to initialize peer: ", err)
+
 			continue
 		}
 
 		s.peerChan.connected <- p
+
 		break
 	}
 }
@@ -200,4 +203,10 @@ func (s *Server) AddPeer(ctx context.Context, peer *Peer) {
 func (s *Server) RemovePeer(p *Peer) {
 	delete(s.peersConnected, p.Info.ID)
 	s.logger.Info("peer removed ", p)
+}
+
+// PeerConnected checks if the peer is connected to the network.
+func (s *Server) PeerConnected(p *Peer) bool {
+	_, isConnected := s.peersConnected[p.Info.ID]
+	return isConnected
 }
