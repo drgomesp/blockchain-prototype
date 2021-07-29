@@ -9,6 +9,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	router "github.com/libp2p/go-libp2p-core/routing"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
+	mplex "github.com/libp2p/go-libp2p-mplex"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	secio "github.com/libp2p/go-libp2p-secio"
 	yamux "github.com/libp2p/go-libp2p-yamux"
@@ -72,16 +73,6 @@ func NewServer(ctx context.Context, logger *zap.SugaredLogger, config Config) (*
 	return srv, nil
 }
 
-// HandlePeerFound receives a discovered peer.
-func (s *Server) HandlePeerFound(peerInfo peer.AddrInfo) {
-	p, err := NewPeer(peerInfo)
-	if err != nil {
-		s.logger.Error("failed to initialize peer: ", err)
-	}
-
-	s.peerChan.discovered <- p
-}
-
 func (s *Server) Name() string {
 	return ServerName
 }
@@ -118,6 +109,7 @@ func (s *Server) setupLocalHost(ctx context.Context) error {
 		),
 		p2p.ChainOptions(
 			p2p.Muxer("/yamux/1.0.0", yamux.DefaultTransport),
+			p2p.Muxer("/mplex/6.7.0", mplex.DefaultTransport),
 		),
 		p2p.Security(secio.ID, secio.New),
 		p2p.Routing(func(h host.Host) (router.PeerRouting, error) {
@@ -144,12 +136,11 @@ func (s *Server) ping(ctx context.Context) {
 	for {
 		for _, p := range s.peersConnected {
 			if err := s.node.Connect(ctx, p.Info); err != nil {
+				s.logger.Debug("peer dropped ", p)
 				s.RemovePeer(p)
 
 				break
 			}
-
-			s.logger.Debug("peer connection check ", p)
 		}
 
 		time.Sleep(s.cfg.PingTimeout)
@@ -214,5 +205,6 @@ func (s *Server) RemovePeer(p *Peer) {
 // PeerConnected checks if the peer is connected to the network.
 func (s *Server) PeerConnected(p *Peer) bool {
 	_, isConnected := s.peersConnected[p.Info.ID]
+
 	return isConnected
 }

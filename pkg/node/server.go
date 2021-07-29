@@ -6,10 +6,8 @@ import "context"
 type Server interface {
 	// Name of the server.
 	Name() string
-
 	// Start the server.
 	Start(ctx context.Context) error
-
 	// Stop the server.
 	Stop(ctx context.Context) error
 }

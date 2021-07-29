@@ -4,17 +4,29 @@ import (
 	"context"
 	"time"
 
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	"github.com/pkg/errors"
 )
 
+// serviceTag is an identifier for the discovery service.
+const serviceTag = "rhizom"
+
+// HandlePeerFound receives a discovered peer.
+func (s *Server) HandlePeerFound(peerInfo peer.AddrInfo) {
+	p, err := NewPeer(peerInfo)
+	if err != nil {
+		s.logger.Error("failed to initialize peer: ", err)
+	}
+
+	s.peerChan.discovered <- p
+}
+
 // setupDiscovery sets up the peer discovery mechanism.
 func (s *Server) setupDiscovery(ctx context.Context) error {
-	const serviceTag = "rhizom"
-
 	disc, err := discovery.NewMdnsService(ctx, s.node, time.Second, serviceTag)
 	if err != nil {
-		return errors.Wrap(err, "failed to initialize disc")
+		return errors.Wrap(err, "failed to initialize disc: ")
 	}
 
 	disc.RegisterNotifee(s)

@@ -17,7 +17,9 @@ var bootstrapAddrs = []string{
 }
 
 const (
-	networkName          = "default_22f00069-0561-4086-a0ab-cccd59722c9c"
+	networkName   = "rhz_testnet_e19d2c16-8c39-4f0f-8c88-2427e37c12bb"
+	topicProducer = "/rhz/prc/" + networkName
+
 	p2pServerMaxPeers    = 5
 	p2pServerPingTimeout = time.Second * 5
 )
@@ -40,9 +42,7 @@ func NewFullNode(ctx context.Context, logger *zap.SugaredLogger) (*FullNode, err
 		MaxPeers:       p2pServerMaxPeers,
 		PingTimeout:    p2pServerPingTimeout,
 		BootstrapAddrs: bootstrapAddrs,
-		Topics: []string{
-			"/rhz/blk/" + networkName,
-		},
+		Topics:         []string{topicProducer},
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to initialize p2p server")

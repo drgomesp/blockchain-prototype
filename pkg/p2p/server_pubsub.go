@@ -13,6 +13,7 @@ func (s *Server) setupPubSub(ctx context.Context) error {
 	ps, err := pubsub.NewGossipSub(ctx, s.node)
 	if err != nil {
 		s.logger.Error()
+
 		return errors.Wrap(err, "failed to initialize gossip sub")
 	}
 
@@ -30,7 +31,14 @@ func (s *Server) setupSubscriptions(ctx context.Context) {
 		{
 			for _, topic := range s.cfg.Topics {
 				go func(topicName string) {
-					s.subscribe(ctx, topicName)
+					sub, err := s.subscribe(ctx, topicName)
+					if err != nil {
+						s.logger.Error("failed to setup subscriptions: ", err)
+
+						return
+					}
+
+					s.handleSubscription(ctx, sub)
 				}(topic)
 			}
 		}
@@ -38,18 +46,46 @@ func (s *Server) setupSubscriptions(ctx context.Context) {
 }
 
 // subscribe to a topic.
-func (s *Server) subscribe(ctx context.Context, topicName string) {
+func (s *Server) subscribe(_ context.Context, topicName string) (*pubsub.Subscription, error) {
 	topic, err := s.pubSub.Join(topicName)
 	if err != nil {
-		s.logger.Error("failed to join to topic: ", err)
+		return nil, errors.Wrap(err, "failed to join topic: ")
 	}
 
 	sub, err := topic.Subscribe()
 	if err != nil {
-		s.logger.Error("failed to subscribe to topic: ", err)
+		return nil, errors.Wrap(err, "failed to subscribe to topic: ")
 	}
 
 	s.logger.Debug("subscribed to topic: ", sub.Topic())
+
+	return sub, nil
+}
+
+// handleSubscription handles messages from a given subscription.
+func (s *Server) handleSubscription(ctx context.Context, sub *pubsub.Subscription) {
+	for {
+		select {
+		case <-ctx.Done():
+			{
+				s.logger.Error(ctx.Err())
+				sub.Cancel()
+
+				return
+			}
+		default:
+			{
+				msg, err := sub.Next(ctx)
+				if err != nil {
+					s.logger.Error("failed get next topic message: ", err)
+
+					continue
+				}
+
+				s.logger.Debug("message received: ", string(msg.GetData()))
+			}
+		}
+	}
 }
 
 // RegisterPeerSubscription sets up the topic subscriptions for a given peer.
