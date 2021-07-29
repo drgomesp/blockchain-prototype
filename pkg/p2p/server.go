@@ -11,17 +11,17 @@ import (
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	secio "github.com/libp2p/go-libp2p-secio"
 	yamux "github.com/libp2p/go-libp2p-yamux"
-	"github.com/libp2p/go-libp2p/p2p/discovery"
 	"github.com/libp2p/go-tcp-transport"
-	"github.com/multiformats/go-multiaddr"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
 
+const networkStatePeriod = 5 * time.Second
+
 // peerChannels manages channels where peers are sent through.
 type peerChannels struct {
-	discovered chan peer.AddrInfo // discovered peers found through Kademlia DHT
-	connected  chan peer.AddrInfo // connected peers in the network
+	discovered chan *Peer // discovered peers found through Kademlia DHT
+	connected  chan *Peer // connected peers in the network
 }
 
 const ServerName = "p2p.server"
@@ -30,13 +30,13 @@ const ServerName = "p2p.server"
 type Server struct {
 	cfg    Config
 	logger *zap.SugaredLogger
-	host   host.Host
+	node   Node
 	dht    *kaddht.IpfsDHT
 
-	running        bool                      // running controls the run loop
-	quit           chan bool                 // quit channel to receive the stop signal
-	peerChan       peerChannels              // peerChan manages channel-sent peers
-	peersConnected map[peer.ID]peer.AddrInfo // peersConnected holds recently connected peers
+	running        bool              // running controls the run loop
+	quit           chan bool         // quit channel to receive the stop signal
+	peerChan       peerChannels      // peerChan manages channel-sent peers
+	peersConnected map[peer.ID]*Peer // peersConnected holds recently connected Peer nodes
 }
 
 // NewServer initializes a p2p Server from a given Config capable of managing a network.
@@ -44,19 +44,19 @@ func NewServer(ctx context.Context, logger *zap.SugaredLogger, config Config) (*
 	srv := &Server{
 		cfg:     config,
 		logger:  logger,
-		host:    nil,
+		node:    nil,
 		dht:     new(kaddht.IpfsDHT),
 		running: false,
 		quit:    make(chan bool),
 		peerChan: peerChannels{
-			discovered: make(chan peer.AddrInfo),
-			connected:  make(chan peer.AddrInfo),
+			discovered: make(chan *Peer),
+			connected:  make(chan *Peer),
 		},
-		peersConnected: make(map[peer.ID]peer.AddrInfo),
+		peersConnected: make(map[peer.ID]*Peer),
 	}
 
 	if err := srv.setupLocalHost(ctx); err != nil {
-		return nil, errors.Wrap(err, "failed to initialize host")
+		return nil, errors.Wrap(err, "failed to initialize node")
 	}
 
 	if err := srv.setupDiscovery(ctx); err != nil {
@@ -68,7 +68,12 @@ func NewServer(ctx context.Context, logger *zap.SugaredLogger, config Config) (*
 
 // HandlePeerFound receives a discovered peer.
 func (s *Server) HandlePeerFound(peerInfo peer.AddrInfo) {
-	s.peerChan.discovered <- peerInfo
+	p, err := NewPeer(peerInfo)
+	if err != nil {
+		s.logger.Error("failed to initialize peer: ", err)
+	}
+
+	s.peerChan.discovered <- p
 }
 
 func (s *Server) Name() string {
@@ -83,7 +88,8 @@ func (s *Server) Start(ctx context.Context) error {
 	s.running = true
 
 	s.connectBootstrapPeers(ctx)
-	s.bootstrap(ctx)
+	s.bootstrapNetwork(ctx)
+	s.setupPeerSubscriptions(ctx)
 
 	return nil
 }
@@ -94,7 +100,7 @@ func (s *Server) Stop(_ context.Context) error {
 	return nil
 }
 
-// setupLocalHost sets up the local p2p host.
+// setupLocalHost sets up the local p2p node.
 func (s *Server) setupLocalHost(ctx context.Context) error {
 	h, err := p2p.New(
 		ctx,
@@ -119,115 +125,25 @@ func (s *Server) setupLocalHost(ctx context.Context) error {
 		}),
 	)
 	if err != nil {
-		return errors.Wrap(err, "local host setup failed")
+		return errors.Wrap(err, "local node setup failed")
 	}
 
-	s.host = h
+	s.node = h
 
 	return nil
-}
-
-// setupDiscovery sets up the peer discovery mechanism.
-func (s *Server) setupDiscovery(ctx context.Context) error {
-	const serviceTag = "rhizom"
-
-	disc, err := discovery.NewMdnsService(ctx, s.host, time.Second, serviceTag)
-	if err != nil {
-		return errors.Wrap(err, "failed to initialize disc")
-	}
-
-	disc.RegisterNotifee(s)
-
-	return nil
-}
-
-// connectBootstrapPeers connects to all bootstrap peers.
-func (s *Server) connectBootstrapPeers(ctx context.Context) {
-	s.logger.Info("connecting to bootstrap peers")
-
-	peerInfos := make([]peer.AddrInfo, len(s.cfg.BootstrapAddrs))
-
-bootstrap:
-	for {
-		for i, addr := range s.cfg.BootstrapAddrs {
-			peerAddr, err := multiaddr.NewMultiaddr(addr)
-			if err != nil {
-				s.logger.Error("failed to initialize multiaddr: ", err)
-
-				continue
-			}
-
-			peerInfo, err := peer.AddrInfoFromP2pAddr(peerAddr)
-			if err != nil {
-				s.logger.Error("failed to load addr info from multiaddr: ", err)
-
-				continue
-			}
-
-			s.AddPeer(ctx, *peerInfo)
-			peerInfos[i] = *peerInfo
-		}
-
-		for _, peerInfo := range peerInfos {
-			if _, ok := s.peersConnected[peerInfo.ID]; !ok {
-				continue bootstrap
-			}
-		}
-
-		break bootstrap
-	}
-
-	s.logger.Info("done connecting to bootstrap peers")
-}
-
-// bootstrap the network.
-func (s *Server) bootstrap(ctx context.Context) {
-	select {
-	case <-ctx.Done():
-		return
-	default:
-		// just calls RefreshRoutingTable -> tells the DHT to refresh it's routing tables.
-		if err := s.dht.Bootstrap(ctx); err != nil {
-			s.logger.Error("failed to bootstrap network ", err)
-		}
-
-		s.logger.Info("bootstrapped network")
-
-		return
-	}
-}
-
-// discover for incoming discovered peers.
-func (s *Server) discover(ctx context.Context) {
-listening:
-	for {
-		select {
-		case <-ctx.Done():
-			{
-				s.quit <- true
-
-				break listening
-			}
-		case peerInfo := <-s.peerChan.discovered:
-			{
-				s.logger.Info("peer discovered ", peerInfo.ID.ShortString())
-				go s.AddPeer(ctx, peerInfo)
-			}
-		}
-	}
 }
 
 // ping connected peers regularly.
 func (s *Server) ping(ctx context.Context) {
 	for {
 		for _, p := range s.peersConnected {
-			if err := s.host.Connect(ctx, p); err != nil {
+			if err := s.node.Connect(ctx, p.Info); err != nil {
 				s.RemovePeer(p)
 
 				break
 			}
 
-			s.logger.Debug("peer check ", p.ID.ShortString())
+			s.logger.Debug("peer connection check ", p)
 		}
 
 		time.Sleep(s.cfg.PingTimeout)
@@ -241,43 +157,47 @@ running:
 		select {
 		case <-s.quit:
 			break running
-		case peerInfo := <-s.peerChan.connected:
+		case p := <-s.peerChan.connected:
 			{
-				s.peersConnected[peerInfo.ID] = peerInfo
-				s.logger.Info("peer added ", peerInfo.ID.ShortString())
+				s.peersConnected[p.Info.ID] = p
+				s.logger.Info("peer added ", p)
 			}
-		default:
+		case <-time.After(networkStatePeriod):
 			{
-				s.logger.Info("connected peers: ", len(s.peersConnected))
-
-				time.Sleep(time.Second)
+				s.logger.Debugw("online", "connected", len(s.peersConnected))
 			}
 		}
 	}
 }
 
 // AddPeer adds a peer to the network.
-func (s *Server) AddPeer(ctx context.Context, peerInfo peer.AddrInfo) {
+func (s *Server) AddPeer(ctx context.Context, peer *Peer) {
 	for {
-		_, isConnected := s.peersConnected[peerInfo.ID]
+		var err error
+
+		_, isConnected := s.peersConnected[peer.Info.ID]
 		if isConnected {
 			return
 		}
 
-		if err := s.dht.Host().Connect(ctx, peerInfo); err != nil {
+		if err = s.dht.Host().Connect(ctx, peer.Info); err != nil {
 			s.logger.Warnw("couldn't connect to peer", "err", err)
-
 			continue
 		}
 
-		s.peerChan.connected <- peerInfo
+		var p *Peer
+		if p, err = NewPeer(peer.Info); err != nil {
+			s.logger.Error("failed to initialize peer: ", err)
+			continue
+		}
 
+		s.peerChan.connected <- p
 		break
 	}
 }
 
 // RemovePeer removes a peer from the network.
-func (s *Server) RemovePeer(peerInfo peer.AddrInfo) {
-	delete(s.peersConnected, peerInfo.ID)
-	s.logger.Info("peer removed ", peerInfo.ID.ShortString())
+func (s *Server) RemovePeer(p *Peer) {
+	delete(s.peersConnected, p.Info.ID)
+	s.logger.Info("peer removed ", p)
 }
