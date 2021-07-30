@@ -11,6 +11,7 @@ require (
 	github.com/libp2p/go-libp2p-secio v0.2.2
 	github.com/libp2p/go-libp2p-yamux v0.5.4
 	github.com/libp2p/go-tcp-transport v0.2.7
+	github.com/libp2p/go-ws-transport v0.4.0 // indirect
 	github.com/multiformats/go-multiaddr v0.3.3
 	github.com/pkg/errors v0.9.1
 	github.com/stretchr/testify v1.7.0

@@ -14,6 +14,7 @@ import (
 	secio "github.com/libp2p/go-libp2p-secio"
 	yamux "github.com/libp2p/go-libp2p-yamux"
 	"github.com/libp2p/go-tcp-transport"
+	ws "github.com/libp2p/go-ws-transport"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
@@ -26,16 +27,16 @@ type peerChannels struct {
 	connected  chan *Peer // connected peers in the network
 }
 
-const ServerName = "p2p.server"
+const ServerName = "p2p"
 
 // Server manages p2p connections.
 type Server struct {
-	cfg    Config
-	logger *zap.SugaredLogger
-	node   Node
-	dht    *kaddht.IpfsDHT
-	pubSub *pubsub.PubSub
-
+	cfg            Config             // cfg server options.
+	logger         *zap.SugaredLogger // logger provided logger.
+	peer           *Peer              // Peer is the local p2p peer.
+	host           host.Host
+	dht            *kaddht.IpfsDHT
+	pubSub         *pubsub.PubSub
 	running        bool              // running controls the run loop
 	quit           chan bool         // quit channel to receive the stop signal
 	peerChan       peerChannels      // peerChan manages channel-sent peers
@@ -47,7 +48,7 @@ func NewServer(ctx context.Context, logger *zap.SugaredLogger, config Config) (*
 	srv := &Server{
 		cfg:     config,
 		logger:  logger,
-		node:    nil,
+		peer:    nil,
 		dht:     new(kaddht.IpfsDHT),
 		running: false,
 		quit:    make(chan bool),
@@ -59,7 +60,7 @@ func NewServer(ctx context.Context, logger *zap.SugaredLogger, config Config) (*
 	}
 
 	if err := srv.setupLocalHost(ctx); err != nil {
-		return nil, errors.Wrap(err, "failed to initialize node")
+		return nil, errors.Wrap(err, "failed to initialize peer")
 	}
 
 	if err := srv.setupDiscovery(ctx); err != nil {
@@ -97,15 +98,17 @@ func (s *Server) Stop(_ context.Context) error {
 	return nil
 }
 
-// setupLocalHost sets up the local p2p node.
+// setupLocalHost sets up the local p2p peer.
 func (s *Server) setupLocalHost(ctx context.Context) error {
 	h, err := p2p.New(
 		ctx,
 		p2p.ChainOptions(
 			p2p.Transport(tcp.NewTCPTransport),
+			p2p.Transport(ws.New),
 		),
 		p2p.ListenAddrStrings(
 			"/ip4/0.0.0.0/tcp/0",
+			"/ip4/0.0.0.0/tcp/0/ws",
 		),
 		p2p.ChainOptions(
 			p2p.Muxer("/yamux/1.0.0", yamux.DefaultTransport),
@@ -123,10 +126,16 @@ func (s *Server) setupLocalHost(ctx context.Context) error {
 		}),
 	)
 	if err != nil {
-		return errors.Wrap(err, "local node setup failed")
+		return errors.Wrap(err, "h peer setup failed") // TODO: change to const
 	}
 
-	s.node = h
+	p, err := NewPeer(*host.InfoFromHost(h))
+	if err != nil {
+		return errors.Wrap(err, "h peer setup failed") // TODO: change to const
+	}
+
+	s.host = h
+	s.peer = p
 
 	return nil
 }
@@ -135,9 +144,9 @@ func (s *Server) setupLocalHost(ctx context.Context) error {
 func (s *Server) ping(ctx context.Context) {
 	for {
 		for _, p := range s.peersConnected {
-			if err := s.node.Connect(ctx, p.Info); err != nil {
-				s.logger.Debug("peer dropped ", p)
+			if err := s.host.Connect(ctx, p.Info()); err != nil {
 				s.RemovePeer(p)
+				s.logger.Debug("peer dropped ", p)
 
 				break
 			}
@@ -156,7 +165,7 @@ running:
 			break running
 		case p := <-s.peerChan.connected:
 			{
-				s.peersConnected[p.Info.ID] = p
+				s.peersConnected[p.info.ID] = p
 				s.logger.Debug("peer added ", p)
 			}
 		case <-time.After(networkStatePeriod):
@@ -176,7 +185,7 @@ func (s *Server) AddPeer(ctx context.Context, peer *Peer) {
 			return
 		}
 
-		if err = s.dht.Host().Connect(ctx, peer.Info); err != nil {
+		if err = s.dht.Host().Connect(ctx, peer.info); err != nil {
 			s.logger.Warnw("couldn't connect to peer", "err", err)
 
 			continue
@@ -184,7 +193,7 @@ func (s *Server) AddPeer(ctx context.Context, peer *Peer) {
 
 		var p *Peer
 
-		if p, err = NewPeer(peer.Info); err != nil {
+		if p, err = NewPeer(peer.info); err != nil {
 			s.logger.Error("failed to initialize peer: ", err)
 
 			continue
@@ -198,13 +207,12 @@ func (s *Server) AddPeer(ctx context.Context, peer *Peer) {
 
 // RemovePeer removes a peer from the network.
 func (s *Server) RemovePeer(p *Peer) {
-	delete(s.peersConnected, p.Info.ID)
-	s.logger.Info("peer removed ", p)
+	delete(s.peersConnected, p.info.ID)
 }
 
 // PeerConnected checks if the peer is connected to the network.
 func (s *Server) PeerConnected(p *Peer) bool {
-	_, isConnected := s.peersConnected[p.Info.ID]
+	_, isConnected := s.peersConnected[p.info.ID]
 
 	return isConnected
 }

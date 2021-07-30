@@ -11,11 +11,8 @@ import (
 func (s *Server) connectBootstrapPeers(ctx context.Context) {
 	s.logger.Debug("connecting to bootstrap peers")
 
-	connected := make([]*Peer, len(s.cfg.BootstrapAddrs))
-
-bootstrap:
 	for {
-		for i, addr := range s.cfg.BootstrapAddrs {
+		for _, addr := range s.cfg.BootstrapAddrs {
 			peerAddr, err := multiaddr.NewMultiaddr(addr)
 			if err != nil {
 				s.logger.Error("failed to initialize multiaddr: ", err)
@@ -30,25 +27,11 @@ bootstrap:
 				continue
 			}
 
-			var p *Peer
-			if p, err = NewPeer(*peerInfo); err != nil {
-				s.logger.Error("failed to initialize peer: ", err)
-			}
+			s.logger.Debug("connected to bootstrap peer: ", peerInfo.ID.ShortString())
 
-			s.AddPeer(ctx, p)
-			connected[i] = p
+			return
 		}
-
-		for _, peerInfo := range connected {
-			if _, ok := s.peersConnected[peerInfo.Info.ID]; !ok {
-				continue bootstrap
-			}
-		}
-
-		break bootstrap
 	}
-
-	s.logger.Debug("connected to bootstrap peers")
 }
 
 // bootstrapNetwork the network.

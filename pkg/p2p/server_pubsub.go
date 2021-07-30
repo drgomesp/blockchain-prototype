@@ -10,7 +10,7 @@ import (
 
 // setupPubSub initializes the pub/sub mechanism.
 func (s *Server) setupPubSub(ctx context.Context) error {
-	ps, err := pubsub.NewGossipSub(ctx, s.node)
+	ps, err := pubsub.NewGossipSub(ctx, s.host)
 	if err != nil {
 		s.logger.Error()
 
@@ -30,7 +30,7 @@ func (s *Server) setupSubscriptions(ctx context.Context) {
 	default:
 		{
 			for _, topic := range s.cfg.Topics {
-				go func(topicName string) {
+				go func(ctx context.Context, topicName string) {
 					sub, err := s.subscribe(ctx, topicName)
 					if err != nil {
 						s.logger.Error("failed to setup subscriptions: ", err)
@@ -39,7 +39,7 @@ func (s *Server) setupSubscriptions(ctx context.Context) {
 					}
 
 					s.handleSubscription(ctx, sub)
-				}(topic)
+				}(ctx, topic)
 			}
 		}
 	}
@@ -82,7 +82,11 @@ func (s *Server) handleSubscription(ctx context.Context, sub *pubsub.Subscriptio
 					continue
 				}
 
-				s.logger.Debug("message received: ", string(msg.GetData()))
+				s.logger.Debugf(
+					"message received on topic %s: %s",
+					sub.Topic(),
+					string(msg.GetData()),
+				)
 			}
 		}
 	}

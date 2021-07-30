@@ -24,9 +24,9 @@ func (s *Server) HandlePeerFound(peerInfo peer.AddrInfo) {
 
 // setupDiscovery sets up the peer discovery mechanism.
 func (s *Server) setupDiscovery(ctx context.Context) error {
-	disc, err := discovery.NewMdnsService(ctx, s.node, time.Second, serviceTag)
+	disc, err := discovery.NewMdnsService(ctx, s.host, time.Second, serviceTag)
 	if err != nil {
-		return errors.Wrap(err, "failed to initialize disc: ")
+		return errors.Wrap(err, "failed to initialize disc")
 	}
 
 	disc.RegisterNotifee(s)

@@ -27,6 +27,7 @@ linters:
     - gochecknoinits
     - typecheck
     - gochecknoglobals
+    - godox
   fast: false
 
 issues:
