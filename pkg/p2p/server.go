@@ -31,16 +31,17 @@ const ServerName = "p2p"
 
 // Server manages p2p connections.
 type Server struct {
-	cfg            Config             // cfg server options.
-	logger         *zap.SugaredLogger // logger provided logger.
-	peer           *Peer              // Peer is the local p2p peer.
-	host           host.Host
-	dht            *kaddht.IpfsDHT
-	pubSub         *pubsub.PubSub
-	running        bool              // running controls the run loop
-	quit           chan bool         // quit channel to receive the stop signal
-	peerChan       peerChannels      // peerChan manages channel-sent peers
-	peersConnected map[peer.ID]*Peer // peersConnected holds recently connected Peer nodes
+	cfg             Config             // cfg server options.
+	logger          *zap.SugaredLogger // logger provided logger.
+	peer            *Peer              // Peer is the local p2p peer.
+	host            host.Host
+	dht             *kaddht.IpfsDHT
+	pubSub          *pubsub.PubSub
+	running         bool              // running controls the run loop.
+	quit            chan bool         // quit channel to receive the stop signal.
+	peerChan        peerChannels      // peerChan manages channel-sent peers.
+	peersDiscovered map[peer.ID]*Peer // peersDiscovered holds the discovered Peer nodes.
+	peersConnected  map[peer.ID]*Peer // peersConnected holds recently connected Peer nodes
 }
 
 // NewServer initializes a p2p Server from a given Config capable of managing a network.
@@ -56,7 +57,8 @@ func NewServer(ctx context.Context, logger *zap.SugaredLogger, config Config) (*
 			discovered: make(chan *Peer),
 			connected:  make(chan *Peer),
 		},
-		peersConnected: make(map[peer.ID]*Peer),
+		peersDiscovered: make(map[peer.ID]*Peer),
+		peersConnected:  make(map[peer.ID]*Peer),
 	}
 
 	if err := srv.setupLocalHost(ctx); err != nil {
@@ -212,7 +214,14 @@ func (s *Server) RemovePeer(p *Peer) {
 
 // PeerConnected checks if the peer is connected to the network.
 func (s *Server) PeerConnected(p *Peer) bool {
-	_, isConnected := s.peersConnected[p.info.ID]
+	_, is := s.peersConnected[p.info.ID]
 
-	return isConnected
+	return is
+}
+
+// PeerDiscovered checks if the peer is discovered by the network.
+func (s *Server) PeerDiscovered(peerInfo peer.AddrInfo) bool {
+	_, is := s.peersDiscovered[peerInfo.ID]
+
+	return is
 }

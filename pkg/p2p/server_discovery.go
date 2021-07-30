@@ -47,6 +47,12 @@ listening:
 			}
 		case p := <-s.peerChan.discovered:
 			{
+				if s.PeerDiscovered(p.Info()) {
+					continue
+				}
+
+				s.peersDiscovered[p.Info().ID] = p
+
 				if !s.PeerConnected(p) {
 					s.logger.Debug("peer discovered ", p)
 					go s.AddPeer(ctx, p)
