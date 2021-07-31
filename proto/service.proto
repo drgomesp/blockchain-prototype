@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package service;
+
+option go_package = "rhizom-v2/proto/gen/service";
+
+import "proto/message.proto";
+
+service Node {
+  rpc GetBlock (stream message.GetBlockRequest) returns (message.GetBlockResponse);
+}
