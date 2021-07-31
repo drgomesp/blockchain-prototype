@@ -1,7 +1,6 @@
 syntax = "proto3";
 
 package entity;
-
 option go_package = "rhizom-v2/proto/gen/entity";
 
 message Block {

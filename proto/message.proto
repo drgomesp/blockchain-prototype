@@ -1,7 +1,6 @@
 syntax = "proto3";
 
 package message;
-
 option go_package = "rhizom-v2/proto/gen/message";
 
 import "proto/entity.proto";
