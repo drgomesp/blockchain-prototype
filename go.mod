@@ -20,6 +20,7 @@ require (
 	github.com/rhizomplatform/log v1.0.0
 	github.com/stretchr/testify v1.7.0
 	github.com/tebeka/strftime v0.1.5 // indirect
+	github.com/ugorji/go/codec v1.2.6 // indirect
 	github.com/urfave/cli/v2 v2.3.0
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect

@@ -3,8 +3,6 @@ package p2p
 import (
 	"context"
 
-	"github.com/drgomesp/rhizom/pkg/rhz"
-	"github.com/fxamacker/cbor"
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/pkg/errors"
@@ -84,14 +82,14 @@ func (s *Server) handleSubscription(ctx context.Context, sub *pubsub.Subscriptio
 					continue
 				}
 
-				var block rhz.Block
-				if err := cbor.Unmarshal(msg.Data, &block); err != nil {
-					s.logger.Error("unmarshal block failed", err)
+				var pm Message
+				if err = pm.Decode(msg); err != nil {
+					s.logger.Error("unmarshal block failed: ", err)
 
 					continue
 				}
 
-				s.logger.Debugw("message received", sub.Topic(), block)
+				s.logger.Debugw("message received", "msg", pm)
 			}
 		}
 	}
