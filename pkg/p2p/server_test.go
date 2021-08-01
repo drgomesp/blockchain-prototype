@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/rhizomplatform/rhizom/pkg/p2p"
+	"github.com/drgomesp/rhizom/pkg/p2p"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap/zaptest"
 )

@@ -1,13 +1,17 @@
 package node
 
-import "github.com/rhizomplatform/rhizom/pkg/rpc"
+import (
+	"github.com/drgomesp/rhizom/pkg/p2p"
+	"github.com/drgomesp/rhizom/pkg/rpc"
+)
 
 // Node implements a multi-protocol node in the Rhizom network.
 type Node struct {
 	config Config
 
-	servers []Server
-	apis    []*rpc.API
+	servers   []Server
+	apis      []*rpc.API
+	protocols []p2p.Protocol
 }
 
 func New(config Config) (*Node, error) {
@@ -26,6 +30,10 @@ func (n *Node) RegisterAPIs(apis ...*rpc.API) {
 
 func (n *Node) RegisterServers(servers ...Server) {
 	n.servers = append(n.servers, servers...)
+}
+
+func (n *Node) RegisterProtocols(protocols ...p2p.Protocol) {
+	n.protocols = append(n.protocols, protocols...)
 }
 
 func (n *Node) Config() Config {

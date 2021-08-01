@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/rhizomplatform/rhizom/pkg/node"
-	"github.com/rhizomplatform/rhizom/pkg/rpc"
+	"github.com/drgomesp/rhizom/pkg/node"
+	"github.com/drgomesp/rhizom/pkg/rpc"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -47,7 +47,7 @@ func TestNode_RegisterServer(t *testing.T) {
 	})
 
 	s1, s2 := new(fakeServer), new(fakeServer)
-	n.RegisterServers(s1, s2)
+	n.RegisterProtocols(s1, s2)
 
 	assert.Containsf(t, n.Servers(), s1, "test node should contain s1 server")
 	assert.Containsf(t, n.Servers(), s2, "test node should contain s2 server")

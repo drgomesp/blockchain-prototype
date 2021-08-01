@@ -3,6 +3,8 @@ package p2p
 import (
 	"context"
 
+	"github.com/drgomesp/rhizom/pkg/rhz"
+	"github.com/fxamacker/cbor"
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/pkg/errors"
@@ -49,7 +51,7 @@ func (s *Server) setupSubscriptions(ctx context.Context) {
 func (s *Server) subscribe(_ context.Context, topicName string) (*pubsub.Subscription, error) {
 	topic, err := s.pubSub.Join(topicName)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to join topic: ")
+		return nil, errors.Wrapf(err, "failed to join topic %s", topicName)
 	}
 
 	sub, err := topic.Subscribe()
@@ -82,11 +84,14 @@ func (s *Server) handleSubscription(ctx context.Context, sub *pubsub.Subscriptio
 					continue
 				}
 
-				s.logger.Debugf(
-					"message received on topic %s: %s",
-					sub.Topic(),
-					string(msg.GetData()),
-				)
+				var block rhz.Block
+				if err := cbor.Unmarshal(msg.Data, &block); err != nil {
+					s.logger.Error("unmarshal block failed", err)
+
+					continue
+				}
+
+				s.logger.Debugw("message received", sub.Topic(), block)
 			}
 		}
 	}

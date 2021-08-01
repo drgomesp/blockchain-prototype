@@ -4,10 +4,11 @@ import (
 	"context"
 	"time"
 
+	"github.com/drgomesp/rhizom/internal/rhz"
+	"github.com/drgomesp/rhizom/pkg/node"
+	"github.com/drgomesp/rhizom/pkg/p2p"
+	"github.com/drgomesp/rhizom/pkg/rpc"
 	"github.com/pkg/errors"
-	"github.com/rhizomplatform/rhizom/pkg/node"
-	"github.com/rhizomplatform/rhizom/pkg/p2p"
-	"github.com/rhizomplatform/rhizom/pkg/rpc"
 	"go.uber.org/zap"
 )
 
@@ -17,14 +18,29 @@ var bootstrapAddrs = []string{
 }
 
 const (
-	networkName       = "rhz_testnet_e19d2c16-8c39-4f0f-8c88-2427e37c12bb"
-	topicBlocks       = "/rhz/blk/" + networkName
-	topicProducers    = "/rhz/prc/" + networkName
-	topicTransactions = "/rhz/tx/" + networkName
+	rhzPrefix = "/rhz/"
+	net       = "default_2b678c95-27d5-4f09-bf38-a62be2c5339b"
+	// net               = "default_b73c9ec0-b225-4f1a-b137-7c13ea24c387".
+	TopicBlocks       = "/rhz/blk/" + net
+	TopicProducers    = "/rhz/prc/" + net
+	TopicTransactions = "/rhz/tx/" + net
+	TopicRequestSync  = "/rhz/blkchain/req/" + net
+
+	ProtocolRequestBlocks     = rhzPrefix + "blocks/req/" + net
+	ProtocolResponseBlocks    = rhzPrefix + "blocks/resp/" + net
+	ProtocolRequestDelegates  = rhzPrefix + "delegates/req/" + net
+	ProtocolResponseDelegates = rhzPrefix + "delegates/resp/" + net
 
 	p2pServerMaxPeers    = 5
 	p2pServerPingTimeout = time.Second * 5
 )
+
+var topics = []string{
+	TopicBlocks,
+	TopicProducers,
+	TopicTransactions,
+	TopicRequestSync,
+}
 
 type FullNode struct {
 	node   *node.Node
@@ -32,19 +48,11 @@ type FullNode struct {
 }
 
 func NewFullNode(ctx context.Context, logger *zap.SugaredLogger) (*FullNode, error) {
-	n, err := node.New(node.Config{
-		Type: node.TypeFull,
-		Name: "rhz_node",
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "failed initialize node")
-	}
-
 	p2pServer, err := p2p.NewServer(ctx, logger, p2p.Config{
 		MaxPeers:       p2pServerMaxPeers,
 		PingTimeout:    p2pServerPingTimeout,
 		BootstrapAddrs: bootstrapAddrs,
-		Topics:         []string{topicBlocks, topicProducers, topicTransactions},
+		Topics:         topics,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to initialize p2p server")
@@ -55,15 +63,25 @@ func NewFullNode(ctx context.Context, logger *zap.SugaredLogger) (*FullNode, err
 		return nil, errors.Wrap(err, "failed to initialize rpc server")
 	}
 
-	rhz := &FullNode{
+	n, err := node.New(node.Config{
+		Type: node.TypeFull,
+		Name: "rhz_node",
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed initialize node")
+	}
+
+	n.RegisterAPIs(APIs()...)
+	n.RegisterServers(p2pServer, rpcServer)
+
+	fullNode := &FullNode{
 		node:   n,
 		logger: logger,
 	}
 
-	n.RegisterAPIs(rhz.APIs()...)
-	n.RegisterServers(p2pServer, rpcServer)
+	p2pServer.RegisterProtocols(fullNode.Protocols(rhz.API(nil))...)
 
-	return rhz, nil
+	return fullNode, nil
 }
 
 func (n *FullNode) Start(ctx context.Context) error {
@@ -92,6 +110,34 @@ func (n *FullNode) Stop(_ context.Context) error {
 	return nil
 }
 
-func (n *FullNode) APIs() []*rpc.API {
+func APIs() []*rpc.API {
 	return []*rpc.API{}
 }
+
+func (n *FullNode) Protocols(api rhz.API) []p2p.Protocol {
+	return []p2p.Protocol{
+		//{
+		//	Name: ProtocolRequestBlocks,
+		//	Run:  MessageHandler(api),
+		//},
+		//{
+		//	Name: ProtocolResponseBlocks,
+		//	Run:  MessageHandler(api),
+		//},
+		//{
+		//	Name: ProtocolRequestDelegates,
+		//	Run:  MessageHandler(api),
+		//},
+		//{
+		//	Name: ProtocolResponseDelegates,
+		//	Run:  MessageHandler(api),
+		//},
+	}
+}
+
+//
+//func MessageHandler(api rhz.API) rhz.MsgHandlerFunc {
+//	return func(p *p2p.Peer, msg *interface{}) error {
+//		panic("TODO")
+//	}
+//}

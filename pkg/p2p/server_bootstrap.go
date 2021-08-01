@@ -15,19 +15,25 @@ func (s *Server) connectBootstrapPeers(ctx context.Context) {
 		for _, addr := range s.cfg.BootstrapAddrs {
 			peerAddr, err := multiaddr.NewMultiaddr(addr)
 			if err != nil {
-				s.logger.Error("failed to initialize multiaddr: ", err)
+				s.logger.Error("failed to initialize multiaddr", err)
 
 				continue
 			}
 
 			peerInfo, err := peer.AddrInfoFromP2pAddr(peerAddr)
 			if err != nil {
-				s.logger.Error("failed to load addr info from multiaddr: ", err)
+				s.logger.Error("failed to load addr info from multiaddr", err)
 
 				continue
 			}
 
-			s.logger.Debug("connected to bootstrap peer: ", peerInfo.ID.ShortString())
+			if err := s.dht.Host().Connect(ctx, *peerInfo); err != nil {
+				s.logger.Error("failed to connect to bootstrap peer", err)
+
+				continue
+			}
+
+			s.logger.Debug("connected to bootstrap peer", peerInfo.ID.ShortString())
 
 			return
 		}
@@ -42,6 +48,8 @@ func (s *Server) bootstrapNetwork(ctx context.Context) {
 	default:
 		if err := s.dht.Bootstrap(ctx); err != nil {
 			s.logger.Error("failed to bootstrap network ", err)
+
+			return
 		}
 
 		s.logger.Debug("bootstrapped network")

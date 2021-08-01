@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/drgomesp/rhizom/internal/rhznode"
 	"github.com/pkg/errors"
-	"github.com/rhizomplatform/rhizom/internal/rhznode"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
