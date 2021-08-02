@@ -11,7 +11,7 @@ type MsgType string
 
 type Message struct {
 	Type    MsgType
-	Payload map[string]interface{}
+	Payload interface{}
 }
 
 func (m *Message) Decode(v interface{}) error {
@@ -20,9 +20,8 @@ func (m *Message) Decode(v interface{}) error {
 	h := &ch
 
 	msg := v.(*pubsub.Message)
-
 	m.Type = MsgType(*msg.Topic)
-	m.Payload = make(map[string]interface{})
+	m.Payload = new(interface{})
 
 	dec := codec.NewDecoderBytes(msg.Data, h)
 

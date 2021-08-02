@@ -28,3 +28,11 @@ func NewPeer(pubsub *pubsub.PubSub, peerInfo peer.AddrInfo) (*Peer, error) {
 
 	return p, nil
 }
+
+func (p *Peer) ReadMsg() (Message, error) {
+	panic("implement me")
+}
+
+func (p *Peer) WriteMsg(msg Message) error {
+	panic("implement me")
+}

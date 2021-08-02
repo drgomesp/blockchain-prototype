@@ -6,7 +6,4 @@ type StreamingFunc func(data []byte)
 type Protocol struct {
 	// Name of the protocol (three-letter word).
 	Name string
-
-	// Run ...
-	// Run func(p *Peer, msg *Message) error
 }

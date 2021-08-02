@@ -48,12 +48,18 @@ type Server struct {
 	peersConnected  map[peer.ID]*Peer // peersConnected holds recently connected Peer nodes
 }
 
+type ServerOption func(*Server)
+
+func WithLogger(l *zap.SugaredLogger) ServerOption {
+	return func(srv *Server) {
+		srv.logger = l
+	}
+}
+
 // NewServer initializes a p2p Server from a given Config capable of managing a network.
-func NewServer(ctx context.Context, logger *zap.SugaredLogger, config Config) (*Server, error) {
+func NewServer(config Config, opt ...ServerOption) (*Server, error) {
 	srv := &Server{
 		cfg:     config,
-		logger:  logger,
-		peer:    nil,
 		dht:     new(kaddht.IpfsDHT),
 		running: false,
 		quit:    make(chan bool),
@@ -65,16 +71,8 @@ func NewServer(ctx context.Context, logger *zap.SugaredLogger, config Config) (*
 		peersConnected:  make(map[peer.ID]*Peer),
 	}
 
-	if err := srv.setupLocalHost(ctx); err != nil {
-		return nil, errors.Wrap(err, "failed to initialize peer")
-	}
-
-	if err := srv.setupDiscovery(ctx); err != nil {
-		return nil, errors.Wrap(err, "failed to initialize discovery")
-	}
-
-	if err := srv.setupPubSub(ctx); err != nil {
-		return nil, errors.Wrap(err, "failed to initialize pubsub")
+	for _, option := range opt {
+		option(srv)
 	}
 
 	return srv, nil
@@ -85,6 +83,18 @@ func (s *Server) Name() string {
 }
 
 func (s *Server) Start(ctx context.Context) error {
+	if err := s.setupLocalHost(ctx); err != nil {
+		return errors.Wrap(err, "failed to initialize peer")
+	}
+
+	if err := s.setupDiscovery(ctx); err != nil {
+		return errors.Wrap(err, "failed to initialize discovery")
+	}
+
+	if err := s.setupPubSub(ctx); err != nil {
+		return errors.Wrap(err, "failed to initialize pubsub")
+	}
+
 	go s.discover(ctx)
 	go s.ping(ctx)
 	go s.run(ctx)

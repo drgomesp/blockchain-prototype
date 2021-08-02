@@ -3,7 +3,6 @@ package p2p
 import (
 	"context"
 
-	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/pkg/errors"
 )
@@ -93,8 +92,4 @@ func (s *Server) handleSubscription(ctx context.Context, sub *pubsub.Subscriptio
 			}
 		}
 	}
-}
-
-// RegisterPeerSubscription sets up the topic subscriptions for a given peer.
-func (s *Server) RegisterPeerSubscription(ctx context.Context, peerInfo peer.AddrInfo) {
 }
