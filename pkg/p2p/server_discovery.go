@@ -14,9 +14,11 @@ const serviceTag = "rhizom"
 
 // HandlePeerFound receives a discovered peer.
 func (s *Server) HandlePeerFound(peerInfo peer.AddrInfo) {
-	p, err := NewPeer(peerInfo)
+	p, err := NewPeer(s.pubSub, peerInfo)
 	if err != nil {
 		s.logger.Error("failed to initialize peer: ", err)
+
+		return
 	}
 
 	s.peerChan.discovered <- p
@@ -55,9 +57,16 @@ listening:
 
 				if !s.PeerConnected(p) {
 					s.logger.Debug("peer discovered ", p)
-					go s.AddPeer(ctx, p)
+					s.AddPeer(ctx, p)
 				}
 			}
 		}
 	}
+}
+
+// PeerDiscovered checks if the peer is discovered by the network.
+func (s *Server) PeerDiscovered(peerInfo peer.AddrInfo) bool {
+	_, is := s.peersDiscovered[peerInfo.ID]
+
+	return is
 }

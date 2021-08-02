@@ -2,11 +2,13 @@ package p2p
 
 import (
 	"github.com/libp2p/go-libp2p-core/peer"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 )
 
 // Peer is a remote peer in a p2p network.
 type Peer struct {
-	info peer.AddrInfo
+	pubSub *pubsub.PubSub
+	info   peer.AddrInfo
 }
 
 func (p *Peer) Info() peer.AddrInfo {
@@ -18,10 +20,19 @@ func (p *Peer) String() string {
 }
 
 // NewPeer creates a new peer from a given address info.
-func NewPeer(peerInfo peer.AddrInfo) (*Peer, error) {
+func NewPeer(pubsub *pubsub.PubSub, peerInfo peer.AddrInfo) (*Peer, error) {
 	p := &Peer{
-		info: peerInfo,
+		pubSub: pubsub,
+		info:   peerInfo,
 	}
 
 	return p, nil
+}
+
+func (p *Peer) ReadMsg() (Message, error) {
+	panic("implement me")
+}
+
+func (p *Peer) WriteMsg(msg Message) error {
+	panic("implement me")
 }

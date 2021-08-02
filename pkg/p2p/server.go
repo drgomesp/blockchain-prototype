@@ -21,7 +21,7 @@ import (
 
 const networkStatePeriod = 5 * time.Second
 
-// peerChannels manages channels where peers are sent through.
+// peerChannels where peers are sent through.
 type peerChannels struct {
 	discovered chan *Peer // discovered peers found through Kademlia DHT
 	connected  chan *Peer // connected peers in the network
@@ -29,14 +29,18 @@ type peerChannels struct {
 
 const ServerName = "p2p"
 
-// Server manages p2p connections.
+// Server manages a p2p network.
 type Server struct {
-	cfg             Config             // cfg server options.
-	logger          *zap.SugaredLogger // logger provided logger.
-	peer            *Peer              // Peer is the local p2p peer.
-	host            host.Host
-	dht             *kaddht.IpfsDHT
-	pubSub          *pubsub.PubSub
+	// Dependencies
+	cfg       Config             // cfg server options.
+	logger    *zap.SugaredLogger // logger provided logger.
+	protocols []Protocol         // protocols supported by the server.
+	host      host.Host          // host is the actual p2p node within the network.
+	dht       *kaddht.IpfsDHT    // dht discovery service.
+	pubSub    *pubsub.PubSub     // pubSub is a p2p publish/subscribe service.
+	peer      *Peer              // Peer is the local p2p peer.
+
+	// Control flags and channels
 	running         bool              // running controls the run loop.
 	quit            chan bool         // quit channel to receive the stop signal.
 	peerChan        peerChannels      // peerChan manages channel-sent peers.
@@ -44,12 +48,18 @@ type Server struct {
 	peersConnected  map[peer.ID]*Peer // peersConnected holds recently connected Peer nodes
 }
 
+type ServerOption func(*Server)
+
+func WithLogger(l *zap.SugaredLogger) ServerOption {
+	return func(srv *Server) {
+		srv.logger = l
+	}
+}
+
 // NewServer initializes a p2p Server from a given Config capable of managing a network.
-func NewServer(ctx context.Context, logger *zap.SugaredLogger, config Config) (*Server, error) {
+func NewServer(config Config, opt ...ServerOption) (*Server, error) {
 	srv := &Server{
 		cfg:     config,
-		logger:  logger,
-		peer:    nil,
 		dht:     new(kaddht.IpfsDHT),
 		running: false,
 		quit:    make(chan bool),
@@ -61,16 +71,8 @@ func NewServer(ctx context.Context, logger *zap.SugaredLogger, config Config) (*
 		peersConnected:  make(map[peer.ID]*Peer),
 	}
 
-	if err := srv.setupLocalHost(ctx); err != nil {
-		return nil, errors.Wrap(err, "failed to initialize peer")
-	}
-
-	if err := srv.setupDiscovery(ctx); err != nil {
-		return nil, errors.Wrap(err, "failed to initialize discovery")
-	}
-
-	if err := srv.setupPubSub(ctx); err != nil {
-		return nil, errors.Wrap(err, "failed to initialize pubsub")
+	for _, option := range opt {
+		option(srv)
 	}
 
 	return srv, nil
@@ -81,6 +83,18 @@ func (s *Server) Name() string {
 }
 
 func (s *Server) Start(ctx context.Context) error {
+	if err := s.setupLocalHost(ctx); err != nil {
+		return errors.Wrap(err, "failed to initialize peer")
+	}
+
+	if err := s.setupDiscovery(ctx); err != nil {
+		return errors.Wrap(err, "failed to initialize discovery")
+	}
+
+	if err := s.setupPubSub(ctx); err != nil {
+		return errors.Wrap(err, "failed to initialize pubsub")
+	}
+
 	go s.discover(ctx)
 	go s.ping(ctx)
 	go s.run(ctx)
@@ -89,6 +103,7 @@ func (s *Server) Start(ctx context.Context) error {
 
 	s.connectBootstrapPeers(ctx)
 	s.bootstrapNetwork(ctx)
+	s.registerProtocols(ctx)
 	s.setupSubscriptions(ctx)
 
 	return nil
@@ -110,7 +125,6 @@ func (s *Server) setupLocalHost(ctx context.Context) error {
 		),
 		p2p.ListenAddrStrings(
 			"/ip4/0.0.0.0/tcp/0",
-			"/ip4/0.0.0.0/tcp/0/ws",
 		),
 		p2p.ChainOptions(
 			p2p.Muxer("/yamux/1.0.0", yamux.DefaultTransport),
@@ -131,9 +145,9 @@ func (s *Server) setupLocalHost(ctx context.Context) error {
 		return errors.Wrap(err, "h peer setup failed") // TODO: change to const
 	}
 
-	p, err := NewPeer(*host.InfoFromHost(h))
+	p, err := NewPeer(s.pubSub, *host.InfoFromHost(h))
 	if err != nil {
-		return errors.Wrap(err, "h peer setup failed") // TODO: change to const
+		return errors.Wrap(err, "peer setup failed") // TODO: change to const
 	}
 
 	s.host = h
@@ -195,7 +209,7 @@ func (s *Server) AddPeer(ctx context.Context, peer *Peer) {
 
 		var p *Peer
 
-		if p, err = NewPeer(peer.info); err != nil {
+		if p, err = NewPeer(s.pubSub, peer.info); err != nil {
 			s.logger.Error("failed to initialize peer: ", err)
 
 			continue
@@ -219,9 +233,7 @@ func (s *Server) PeerConnected(p *Peer) bool {
 	return is
 }
 
-// PeerDiscovered checks if the peer is discovered by the network.
-func (s *Server) PeerDiscovered(peerInfo peer.AddrInfo) bool {
-	_, is := s.peersDiscovered[peerInfo.ID]
-
-	return is
+// RegisterProtocols registers the server protocol set.
+func (s *Server) RegisterProtocols(protocols ...Protocol) {
+	s.protocols = append(s.protocols, protocols...)
 }

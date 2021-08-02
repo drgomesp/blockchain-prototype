@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/drgomesp/rhizom/internal/rhznode"
 	"github.com/pkg/errors"
-	"github.com/rhizomplatform/rhizom/internal/rhznode"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -59,7 +59,7 @@ func makeFullNode(ctx context.Context) (*rhznode.FullNode, error) {
 
 	var rhz *rhznode.FullNode
 
-	if rhz, err = rhznode.NewFullNode(ctx, logger.Sugar()); err != nil {
+	if rhz, err = rhznode.NewFullNode(logger.Sugar()); err != nil {
 		return nil, errors.Wrap(err, "failed to initialize full node")
 	}
 
