@@ -54,6 +54,10 @@ func (n *Node) RegisterProtocols(protocols ...p2p.Protocol) {
 	n.protocols = protocols
 }
 
+func (n *Node) Services() []Service {
+	return n.services
+}
+
 func (n *Node) Server() *p2p.Server {
 	return n.server
 }
