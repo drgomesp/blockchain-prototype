@@ -6,3 +6,6 @@ all:
     --go-grpc_out=../ \
 		--go-grpc_opt=paths=import \
 		./proto/*.proto
+
+clean:
+	rm -rf ./proto/gen
