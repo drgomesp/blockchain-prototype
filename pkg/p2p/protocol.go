@@ -1,9 +1,8 @@
 package p2p
 
-type RequestResponseProtocol interface{}
+import "context"
 
-// ProtoRunFunc ...
-type ProtoRunFunc func([]byte) error
+type RequestResponseProtocol interface{}
 
 // Protocol defines a sub-protocol for communication in the network.
 type Protocol struct {
@@ -11,5 +10,5 @@ type Protocol struct {
 	ID string
 
 	// Run ...
-	Run ProtoRunFunc
+	Run func(context.Context, MsgReadWriter) error
 }

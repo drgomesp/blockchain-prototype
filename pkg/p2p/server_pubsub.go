@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"bytes"
 	"context"
 	"sync"
 
@@ -103,31 +104,14 @@ func (s *Server) handleSubscription(ctx context.Context, sub *pubsub.Subscriptio
 				}
 
 				var pm Message
-				if err = pm.Decode(msg); err != nil {
+				if err = pm.Decode(bytes.NewReader(msg.Data)); err != nil {
 					s.logger.Error("unmarshal block failed: ", err)
 
 					continue
 				}
 
-				s.logger.Debugw("message received", "msg", pm)
+				// s.logger.Debugw("message received from topic", "topic", msg.Topic, "msg", pm)
 			}
 		}
 	}
-}
-
-func (s *Server) SendMsg(ctx context.Context, msg *Message) error {
-	// todo: make sure to get available peer and stream request
-	topicName := string(msg.Type)
-	_, topic, err := s.subscribe(ctx, topicName)
-	if err != nil {
-		return err
-	}
-
-	m, err := msg.Encode()
-	if err != nil {
-		return errors.Wrap(err, "failed to encode message")
-	}
-
-	s.logger.Infow("message sent", "msg", msg, "topic", topicName)
-	return topic.Publish(ctx, m.Data)
 }

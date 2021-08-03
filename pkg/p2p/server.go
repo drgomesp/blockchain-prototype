@@ -146,7 +146,7 @@ func (s *Server) setupLocalHost(ctx context.Context) error {
 		return errors.Wrap(err, "h peer setup failed") // TODO: change to const
 	}
 
-	p, err := NewPeer(s.pubSub, *host.InfoFromHost(h))
+	p, err := NewPeer(host.InfoFromHost(h), s.pubSub)
 	if err != nil {
 		return errors.Wrap(err, "peer setup failed") // TODO: change to const
 	}
@@ -161,7 +161,7 @@ func (s *Server) setupLocalHost(ctx context.Context) error {
 func (s *Server) ping(ctx context.Context) {
 	for {
 		for _, p := range s.peersConnected {
-			if err := s.host.Connect(ctx, p.Info()); err != nil {
+			if err := s.host.Connect(ctx, *p.info); err != nil {
 				s.RemovePeer(p)
 				s.logger.Debug("peer dropped ", p)
 
@@ -183,7 +183,6 @@ running:
 		case p := <-s.peerChan.connected:
 			{
 				s.peersConnected[p.info.ID] = p
-				s.logger.Debug("peer added ", p)
 			}
 		case <-time.After(networkStatePeriod):
 			{
@@ -202,7 +201,7 @@ func (s *Server) AddPeer(ctx context.Context, peer *Peer) {
 			return
 		}
 
-		if err = s.dht.Host().Connect(ctx, peer.info); err != nil {
+		if err = s.dht.Host().Connect(ctx, *peer.info); err != nil {
 			s.logger.Warnw("couldn't connect to peer", "err", err)
 
 			continue
@@ -210,7 +209,7 @@ func (s *Server) AddPeer(ctx context.Context, peer *Peer) {
 
 		var p *Peer
 
-		if p, err = NewPeer(s.pubSub, peer.info); err != nil {
+		if p, err = NewPeer(peer.info, s.pubSub); err != nil {
 			s.logger.Error("failed to initialize peer: ", err)
 
 			continue

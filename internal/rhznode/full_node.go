@@ -42,7 +42,7 @@ var topics = []string{
 	// TopicTransactions,
 	// TopicRequestSync,
 	ProtocolRequestBlocks,
-	// ProtocolResponseBlocks,
+	ProtocolResponseBlocks,
 }
 
 type FullNode struct {
@@ -81,9 +81,10 @@ func NewFullNode(logger *zap.SugaredLogger) (*FullNode, error) {
 }
 
 func (n *FullNode) Start(ctx context.Context) error {
+	var err error
 	n.logger.Infof("starting full node")
 
-	if err := n.p2pServer.Start(ctx); err != nil {
+	if err = n.p2pServer.Start(ctx); err != nil {
 		return errors.Wrap(err, "failed to start p2p server")
 	}
 
@@ -95,24 +96,15 @@ func (n *FullNode) Start(ctx context.Context) error {
 			return n.Stop(ctx)
 		default:
 			{
-				//if err := p2p.SendMsg(
-				//	ctx,
-				//	n.p2pServer,
-				//	ProtocolRequestBlocks,
-				//	rhz.MsgGetBlocks{IndexHave: 0, IndexNeed: 150},
-				//); err != nil {
-				//	n.logger.Error(err)
-				//}
+				time.Sleep(time.Second * 5)
 
 				if err := n.p2pServer.StreamMsg(
 					ctx,
 					ProtocolRequestBlocks,
-					rhz.GetBlocksRequest{IndexHave: 0, IndexNeed: 150},
+					rhz.GetBlocksRequest{IndexHave: 0, IndexNeed: 1},
 				); err != nil {
 					n.logger.Error(err)
 				}
-
-				time.Sleep(time.Second * 5)
 			}
 		}
 	}
@@ -131,11 +123,16 @@ func (n *FullNode) Name() string {
 func (n *FullNode) Protocols() []p2p.Protocol {
 	return []p2p.Protocol{
 		{
-			ID: ProtocolRequestBlocks,
-			Run: func(data []byte) error {
-				n.logger.Warnf("handler(%s)", string(data))
-				return nil
-			},
+			ID:  ProtocolRequestBlocks,
+			Run: rhz.HandleMessage,
+		},
+		{
+			ID:  ProtocolResponseBlocks,
+			Run: rhz.HandleMessage,
+		},
+		{
+			ID:  "rhz_test",
+			Run: rhz.HandleMessage,
 		},
 	}
 }

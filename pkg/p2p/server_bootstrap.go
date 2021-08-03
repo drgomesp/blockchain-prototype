@@ -3,8 +3,11 @@ package p2p
 import (
 	"context"
 
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/multiformats/go-multiaddr"
+	"github.com/pkg/errors"
 )
 
 // connectBootstrapPeers connects to all bootstrap peers.
@@ -13,27 +16,14 @@ func (s *Server) connectBootstrapPeers(ctx context.Context) {
 
 	for {
 		for _, addr := range s.cfg.BootstrapAddrs {
-			peerAddr, err := multiaddr.NewMultiaddr(addr)
+			p, err := s.connectPeerByAddr(ctx, addr)
 			if err != nil {
-				s.logger.Error("failed to initialize multiaddr", err)
+				s.logger.Error(err)
 
-				continue
+				return
 			}
 
-			peerInfo, err := peer.AddrInfoFromP2pAddr(peerAddr)
-			if err != nil {
-				s.logger.Error("failed to load addr info from multiaddr", err)
-
-				continue
-			}
-
-			if err := s.dht.Host().Connect(ctx, *peerInfo); err != nil {
-				s.logger.Error("failed to connect to bootstrap peer", err)
-
-				continue
-			}
-
-			s.logger.Debug("connected to bootstrap peer", peerInfo.ID.ShortString())
+			s.logger.Debug("connected to bootstrap peer", p.info.ID.ShortString())
 
 			return
 		}
@@ -56,4 +46,39 @@ func (s *Server) bootstrapNetwork(ctx context.Context) {
 
 		return
 	}
+}
+
+func (s *Server) openStreamWithPeer(ctx context.Context, peerID peer.ID, pid protocol.ID) (*connection, *peer.AddrInfo, error) {
+	str, err := s.dht.Host().NewStream(ctx, peerID, pid)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "failed to connect to bootstrap peer")
+	}
+
+	return &connection{transport: &streamTransport{stream: str}}, nil, nil
+}
+
+func (s *Server) connectPeerByAddr(ctx context.Context, addr string) (*Peer, error) {
+	peerAddr, err := multiaddr.NewMultiaddr(addr)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to initialize multiaddr")
+	}
+
+	peerInfo, err := peer.AddrInfoFromP2pAddr(peerAddr)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to load addr info from multiaddr")
+	}
+
+	return s.connectPeer(ctx, peerInfo, nil)
+}
+
+func (s *Server) connectPeer(ctx context.Context, peerInfo *peer.AddrInfo, stream network.Stream) (*Peer, error) {
+	if err := s.dht.Host().Connect(ctx, *peerInfo); err != nil {
+		return nil, errors.Wrap(err, "failed to connect to bootstrap peer")
+	}
+
+	return &Peer{
+		info:   peerInfo,
+		conn:   &connection{transport: &streamTransport{stream: stream}},
+		pubSub: s.pubSub,
+	}, nil
 }

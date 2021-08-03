@@ -2,19 +2,38 @@ package p2p
 
 import (
 	"context"
+	"io"
 	"reflect"
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	pb "github.com/libp2p/go-libp2p-pubsub/pb"
+	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 	"github.com/ugorji/go/codec"
 )
 
+type MessageHandler func(req MsgDecoder) (res MsgDecoder, err error)
+
 type MsgType string
+
+type MsgDecoder interface {
+	Decode(v io.Reader) error
+	Encode() (*pubsub.Message, error)
+}
 
 type Message struct {
 	Type    MsgType
-	Payload interface{}
+	Payload map[string]interface{}
+}
+
+func (m *Message) Decode(v io.Reader) error {
+	var ch codec.CborHandle
+	ch.MapType = reflect.TypeOf(map[string]interface{}(nil))
+	h := &ch
+
+	dec := codec.NewDecoder(v, h)
+
+	return dec.Decode(&m.Payload)
 }
 
 func (m *Message) Encode() (*pubsub.Message, error) {
@@ -40,45 +59,53 @@ func (m *Message) Encode() (*pubsub.Message, error) {
 	return msg, nil
 }
 
-func (m *Message) Decode(msg *pubsub.Message) error {
-	var ch codec.CborHandle
-	ch.MapType = reflect.TypeOf(map[string]interface{}(nil))
-	h := &ch
-
-	dec := codec.NewDecoderBytes(msg.Data, h)
-
-	m.Type = MsgType(*msg.Topic)
-
-	return dec.Decode(&m.Payload)
+// MsgWriter of messages.
+type MsgWriter interface {
+	WriteMsg(context.Context, *Message) error
 }
 
-// Sender of messages.
-type Sender interface {
-	// SendMsg ...
-	SendMsg(context.Context, *Message) error
+// MsgReader of messages.
+type MsgReader interface {
+	ReadMsg(context.Context) (*Message, error)
 }
 
-// Receiver of messages.
-type Receiver interface {
-	// ReceiveMsg ...
-	ReceiveMsg(context.Context) (*Message, error)
+// MsgReadWriter sends and receives messages.
+type MsgReadWriter interface {
+	MsgWriter
+	MsgReader
 }
 
-// MsgPipe sends and receives messages.
-type MsgPipe interface {
-	Sender
-	Receiver
-}
+func SendMsg(ctx context.Context, sender MsgWriter, msgType MsgType, v interface{}) error {
+	var payload map[string]interface{}
+	if err := mapstructure.Decode(v, &payload); err != nil {
+		return err
+	}
 
-func SendMsg(ctx context.Context, sender Sender, msgType MsgType, payload interface{}) error {
 	msg := &Message{
 		Type:    msgType,
 		Payload: payload,
 	}
 
-	if err := sender.SendMsg(ctx, msg); err != nil {
+	if err := sender.WriteMsg(ctx, msg); err != nil {
 		return errors.Wrap(err, "failed to send message")
 	}
 
 	return nil
+}
+
+func (s *Server) WriteMsg(ctx context.Context, msg *Message) error {
+	// todo: make sure to get available peer and stream request
+	topicName := string(msg.Type)
+	_, topic, err := s.subscribe(ctx, topicName)
+	if err != nil {
+		return err
+	}
+
+	m, err := msg.Encode()
+	if err != nil {
+		return errors.Wrap(err, "failed to encode message")
+	}
+
+	s.logger.Infow("message sent", "msg", msg, "topic", topicName)
+	return topic.Publish(ctx, m.Data)
 }
