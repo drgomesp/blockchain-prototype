@@ -5,6 +5,6 @@ option go_package = "github.com/drgomesp/rhizom/proto/gen/service";
 
 import "proto/message.proto";
 
-service Node {
+service BlockFetcher {
   rpc GetBlock (stream message.GetBlockRequest) returns (stream message.GetBlockResponse);
 }
