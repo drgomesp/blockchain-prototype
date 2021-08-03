@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/drgomesp/rhizom/internal/rhz"
 	"github.com/drgomesp/rhizom/pkg/node"
 	"github.com/drgomesp/rhizom/pkg/p2p"
 	"github.com/pkg/errors"
@@ -16,12 +17,15 @@ var bootstrapAddrs = []string{
 }
 
 const (
-	rhzPrefix         = "/rhz/"
-	net               = "default_2b678c95-27d5-4f09-bf38-a62be2c5339b"
-	TopicBlocks       = "/rhz/blk/" + net
-	TopicProducers    = "/rhz/prc/" + net
-	TopicTransactions = "/rhz/tx/" + net
-	TopicRequestSync  = "/rhz/blkchain/req/" + net
+	rhzPrefix = "/rhz/"
+	devNet    = "default_2b678c95-27d5-4f09-bf38-a62be2c5339b"
+	testNet   = "rhz_testnet_e19d2c16-8c39-4f0f-8c88-2427e37c12bb"
+	net       = devNet
+
+	TopicBlocks       = rhzPrefix + "blk/" + net
+	TopicProducers    = rhzPrefix + "prc/" + net
+	TopicTransactions = rhzPrefix + "tx/" + net
+	TopicRequestSync  = rhzPrefix + "blkchain/req/" + net
 
 	ProtocolRequestBlocks     = rhzPrefix + "blocks/req/" + net
 	ProtocolResponseBlocks    = rhzPrefix + "blocks/resp/" + net
@@ -34,9 +38,11 @@ const (
 
 var topics = []string{
 	TopicBlocks,
-	TopicProducers,
-	TopicTransactions,
-	TopicRequestSync,
+	// TopicProducers,
+	// TopicTransactions,
+	// TopicRequestSync,
+	ProtocolRequestBlocks,
+	// ProtocolResponseBlocks,
 }
 
 type FullNode struct {
@@ -81,12 +87,32 @@ func (n *FullNode) Start(ctx context.Context) error {
 		return errors.Wrap(err, "failed to start p2p server")
 	}
 
+	n.p2pServer.RegisterProtocols(n.Protocols()...)
+
 	for {
 		select {
 		case <-ctx.Done():
 			return n.Stop(ctx)
 		default:
 			{
+				//if err := p2p.SendMsg(
+				//	ctx,
+				//	n.p2pServer,
+				//	ProtocolRequestBlocks,
+				//	rhz.MsgGetBlocks{IndexHave: 0, IndexNeed: 150},
+				//); err != nil {
+				//	n.logger.Error(err)
+				//}
+
+				if err := n.p2pServer.StreamMsg(
+					ctx,
+					ProtocolRequestBlocks,
+					rhz.GetBlocksRequest{IndexHave: 0, IndexNeed: 150},
+				); err != nil {
+					n.logger.Error(err)
+				}
+
+				time.Sleep(time.Second * 5)
 			}
 		}
 	}
@@ -103,5 +129,13 @@ func (n *FullNode) Name() string {
 }
 
 func (n *FullNode) Protocols() []p2p.Protocol {
-	return []p2p.Protocol{}
+	return []p2p.Protocol{
+		{
+			ID: ProtocolRequestBlocks,
+			Run: func(data []byte) error {
+				n.logger.Warnf("handler(%s)", string(data))
+				return nil
+			},
+		},
+	}
 }

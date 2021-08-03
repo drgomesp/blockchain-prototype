@@ -38,7 +38,8 @@ type Server struct {
 	host      host.Host          // host is the actual p2p node within the network.
 	dht       *kaddht.IpfsDHT    // dht discovery service.
 	pubSub    *pubsub.PubSub     // pubSub is a p2p publish/subscribe service.
-	peer      *Peer              // Peer is the local p2p peer.
+	topics    map[string]*pubsub.Topic
+	peer      *Peer // Peer is the local p2p peer.
 
 	// Control flags and channels
 	running         bool              // running controls the run loop.
@@ -61,6 +62,7 @@ func NewServer(config Config, opt ...ServerOption) (*Server, error) {
 	srv := &Server{
 		cfg:     config,
 		dht:     new(kaddht.IpfsDHT),
+		topics:  make(map[string]*pubsub.Topic, 0),
 		running: false,
 		quit:    make(chan bool),
 		peerChan: peerChannels{
@@ -103,7 +105,6 @@ func (s *Server) Start(ctx context.Context) error {
 
 	s.connectBootstrapPeers(ctx)
 	s.bootstrapNetwork(ctx)
-	s.registerProtocols(ctx)
 	s.setupSubscriptions(ctx)
 
 	return nil
@@ -186,7 +187,7 @@ running:
 			}
 		case <-time.After(networkStatePeriod):
 			{
-				s.logger.Infow("online", "connected", len(s.peersConnected))
+				// s.logger.Infow("online", "connected", len(s.peersConnected))
 			}
 		}
 	}
@@ -235,5 +236,6 @@ func (s *Server) PeerConnected(p *Peer) bool {
 
 // RegisterProtocols registers the server protocol set.
 func (s *Server) RegisterProtocols(protocols ...Protocol) {
-	s.protocols = append(s.protocols, protocols...)
+	s.protocols = protocols
+	s.registerProtocols(context.Background())
 }
