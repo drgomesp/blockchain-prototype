@@ -4,10 +4,10 @@ package service
 
 import (
 	context "context"
+	message "github.com/drgomesp/rhizom/proto/gen/message"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	message "rhizom/proto/gen/message"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -41,7 +41,7 @@ func (c *nodeClient) GetBlock(ctx context.Context, opts ...grpc.CallOption) (Nod
 
 type Node_GetBlockClient interface {
 	Send(*message.GetBlockRequest) error
-	CloseAndRecv() (*message.GetBlockResponse, error)
+	Recv() (*message.GetBlockResponse, error)
 	grpc.ClientStream
 }
 
@@ -53,10 +53,7 @@ func (x *nodeGetBlockClient) Send(m *message.GetBlockRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *nodeGetBlockClient) CloseAndRecv() (*message.GetBlockResponse, error) {
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
+func (x *nodeGetBlockClient) Recv() (*message.GetBlockResponse, error) {
 	m := new(message.GetBlockResponse)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -97,7 +94,7 @@ func _Node_GetBlock_Handler(srv interface{}, stream grpc.ServerStream) error {
 }
 
 type Node_GetBlockServer interface {
-	SendAndClose(*message.GetBlockResponse) error
+	Send(*message.GetBlockResponse) error
 	Recv() (*message.GetBlockRequest, error)
 	grpc.ServerStream
 }
@@ -106,7 +103,7 @@ type nodeGetBlockServer struct {
 	grpc.ServerStream
 }
 
-func (x *nodeGetBlockServer) SendAndClose(m *message.GetBlockResponse) error {
+func (x *nodeGetBlockServer) Send(m *message.GetBlockResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -129,6 +126,7 @@ var Node_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "GetBlock",
 			Handler:       _Node_GetBlock_Handler,
+			ServerStreams: true,
 			ClientStreams: true,
 		},
 	},
