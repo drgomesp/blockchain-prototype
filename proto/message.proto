@@ -6,6 +6,18 @@ import "proto/entity.proto";
 
 option go_package = "github.com/drgomesp/rhizom/proto/gen/message";
 
+message Error {
+  string err = 1;
+}
+
+message RequestStreamGetBlock {
+  uint64 index_want = 1;
+}
+
+message ResponseStreamGetBlock {
+  entity.Block block = 1;
+}
+
 message RequestBlocks {
   uint64 index_have = 1;
   uint64 index_need = 2;

@@ -17,7 +17,7 @@ const serverAddr = "localhost:7000"
 
 var blockchain []*entity.Block
 
-func streamData(stream stream.Block_GetBlockClient, ch chan<- uint32) {
+func streamData(stream stream.Block_GetBlockClient, ch chan<- uint64) {
 	defer close(ch)
 	for {
 		switch resp, err := stream.Recv(); err {
@@ -56,10 +56,10 @@ func main() {
 		}
 	}()
 
-	ch := make(chan uint32)
+	ch := make(chan uint64)
 
 	go streamData(stream, ch)
-	req := &message.GetBlockRequest{}
+	req := &message.RequestStreamGetBlock{}
 
 	if err := stream.Send(req); err != nil {
 		log.Fatalf("failed to send req: %s", err)
@@ -73,7 +73,7 @@ func main() {
 		select {
 		case i := <-ch:
 			i++
-			req = &message.GetBlockRequest{Want: i}
+			req = &message.RequestStreamGetBlock{IndexWant: i}
 
 			if err := stream.Send(req); err != nil {
 				log.Fatalf("failed to send req: %s", err)

@@ -19,9 +19,7 @@ func main() {
 	fmt.Println("running server...")
 
 	setup := grpc.NewServer()
-
 	stream.RegisterBlockServer(setup, service.NewBlockStream())
-
 	server := rpc.NewServer(_nameServer, setup)
 
 	if err := server.Start(rpc.NewListener(_port)); err != nil {

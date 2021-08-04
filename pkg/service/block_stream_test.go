@@ -51,12 +51,12 @@ func TestService(t *testing.T) {
 	defer func() { assert.NoError(t, stream.CloseSend()) }()
 
 	// send request
-	req := &message.GetBlockRequest{Have: 0, Want: 1}
+	req := &message.RequestStreamGetBlock{IndexWant: 1}
 	err = stream.Send(req)
 	th.FailOnError(t, err)
 
 	// receive response
 	resp, err := stream.Recv()
 	th.FailOnError(t, err)
-	assert.Equal(t, req.Want, resp.Block.Index)
+	assert.Equal(t, req.IndexWant, resp.Block.Index)
 }

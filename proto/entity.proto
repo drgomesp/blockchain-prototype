@@ -4,5 +4,5 @@ package entity;
 option go_package = "github.com/drgomesp/rhizom/proto/gen/entity";
 
 message Block {
-  uint32 index = 1;
+  uint64 index = 1;
 }

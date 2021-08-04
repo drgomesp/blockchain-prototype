@@ -22,20 +22,18 @@ func NewBlockStream() *BlockStream {
 // GetBlocks calls the core service GetBlocks method and maps the result to a grpc service response.
 func (b *BlockStream) GetBlock(stream stream.Block_GetBlockServer) error {
 	for {
-		var resp *message.GetBlockResponse
-		req, err := stream.Recv()
+		var resp *message.ResponseStreamGetBlock
 
-		switch err {
+		switch req, err := stream.Recv(); err {
 		case nil:
-			resp = &message.GetBlockResponse{
-				Block: &entity.Block{Index: req.Want},
-			}
+			resp = &message.ResponseStreamGetBlock{
+				Block: &entity.Block{Index: req.IndexWant}}
 
 		case io.EOF:
 			return nil
 
 		default:
-			resp = &message.GetBlockResponse{Err: err.Error()}
+			resp = &message.ResponseStreamGetBlock{Err: err.Error()}
 		}
 
 		if err := stream.Send(resp); err != nil {

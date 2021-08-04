@@ -40,8 +40,8 @@ func (c *blockClient) GetBlock(ctx context.Context, opts ...grpc.CallOption) (Bl
 }
 
 type Block_GetBlockClient interface {
-	Send(*message.GetBlockRequest) error
-	Recv() (*message.GetBlockResponse, error)
+	Send(*message.RequestStreamGetBlock) error
+	Recv() (*message.ResponseStreamGetBlock, error)
 	grpc.ClientStream
 }
 
@@ -49,12 +49,12 @@ type blockGetBlockClient struct {
 	grpc.ClientStream
 }
 
-func (x *blockGetBlockClient) Send(m *message.GetBlockRequest) error {
+func (x *blockGetBlockClient) Send(m *message.RequestStreamGetBlock) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *blockGetBlockClient) Recv() (*message.GetBlockResponse, error) {
-	m := new(message.GetBlockResponse)
+func (x *blockGetBlockClient) Recv() (*message.ResponseStreamGetBlock, error) {
+	m := new(message.ResponseStreamGetBlock)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -94,8 +94,8 @@ func _Block_GetBlock_Handler(srv interface{}, stream grpc.ServerStream) error {
 }
 
 type Block_GetBlockServer interface {
-	Send(*message.GetBlockResponse) error
-	Recv() (*message.GetBlockRequest, error)
+	Send(*message.ResponseStreamGetBlock) error
+	Recv() (*message.RequestStreamGetBlock, error)
 	grpc.ServerStream
 }
 
@@ -103,12 +103,12 @@ type blockGetBlockServer struct {
 	grpc.ServerStream
 }
 
-func (x *blockGetBlockServer) Send(m *message.GetBlockResponse) error {
+func (x *blockGetBlockServer) Send(m *message.ResponseStreamGetBlock) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *blockGetBlockServer) Recv() (*message.GetBlockRequest, error) {
-	m := new(message.GetBlockRequest)
+func (x *blockGetBlockServer) Recv() (*message.RequestStreamGetBlock, error) {
+	m := new(message.RequestStreamGetBlock)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}

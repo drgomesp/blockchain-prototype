@@ -21,17 +21,16 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type GetBlockRequest struct {
+type RequestStreamGetBlock struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	IndexHave uint64 `protobuf:"varint,1,opt,name=index_have,json=indexHave,proto3" json:"index_have,omitempty"`
-	IndexNeed uint64 `protobuf:"varint,2,opt,name=index_need,json=indexNeed,proto3" json:"index_need,omitempty"`
+	IndexWant uint64 `protobuf:"varint,1,opt,name=index_want,json=indexWant,proto3" json:"index_want,omitempty"`
 }
 
-func (x *GetBlockRequest) Reset() {
-	*x = GetBlockRequest{}
+func (x *RequestStreamGetBlock) Reset() {
+	*x = RequestStreamGetBlock{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_proto_message_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -39,13 +38,13 @@ func (x *GetBlockRequest) Reset() {
 	}
 }
 
-func (x *GetBlockRequest) String() string {
+func (x *RequestStreamGetBlock) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetBlockRequest) ProtoMessage() {}
+func (*RequestStreamGetBlock) ProtoMessage() {}
 
-func (x *GetBlockRequest) ProtoReflect() protoreflect.Message {
+func (x *RequestStreamGetBlock) ProtoReflect() protoreflect.Message {
 	mi := &file_proto_message_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -57,26 +56,19 @@ func (x *GetBlockRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetBlockRequest.ProtoReflect.Descriptor instead.
-func (*GetBlockRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use RequestStreamGetBlock.ProtoReflect.Descriptor instead.
+func (*RequestStreamGetBlock) Descriptor() ([]byte, []int) {
 	return file_proto_message_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *GetBlockRequest) GetIndexHave() uint64 {
+func (x *RequestStreamGetBlock) GetIndexWant() uint64 {
 	if x != nil {
-		return x.IndexHave
+		return x.IndexWant
 	}
 	return 0
 }
 
-func (x *GetBlockRequest) GetIndexNeed() uint64 {
-	if x != nil {
-		return x.IndexNeed
-	}
-	return 0
-}
-
-type GetBlockResponse struct {
+type ResponseStreamGetBlock struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -85,8 +77,8 @@ type GetBlockResponse struct {
 	Err   string        `protobuf:"bytes,2,opt,name=err,proto3" json:"err,omitempty"`
 }
 
-func (x *GetBlockResponse) Reset() {
-	*x = GetBlockResponse{}
+func (x *ResponseStreamGetBlock) Reset() {
+	*x = ResponseStreamGetBlock{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_proto_message_proto_msgTypes[1]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -94,13 +86,13 @@ func (x *GetBlockResponse) Reset() {
 	}
 }
 
-func (x *GetBlockResponse) String() string {
+func (x *ResponseStreamGetBlock) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetBlockResponse) ProtoMessage() {}
+func (*ResponseStreamGetBlock) ProtoMessage() {}
 
-func (x *GetBlockResponse) ProtoReflect() protoreflect.Message {
+func (x *ResponseStreamGetBlock) ProtoReflect() protoreflect.Message {
 	mi := &file_proto_message_proto_msgTypes[1]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -112,21 +104,131 @@ func (x *GetBlockResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetBlockResponse.ProtoReflect.Descriptor instead.
-func (*GetBlockResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use ResponseStreamGetBlock.ProtoReflect.Descriptor instead.
+func (*ResponseStreamGetBlock) Descriptor() ([]byte, []int) {
 	return file_proto_message_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *GetBlockResponse) GetBlock() *entity.Block {
+func (x *ResponseStreamGetBlock) GetBlock() *entity.Block {
 	if x != nil {
 		return x.Block
 	}
 	return nil
 }
 
-func (x *GetBlockResponse) GetErr() string {
+func (x *ResponseStreamGetBlock) GetErr() string {
 	if x != nil {
 		return x.Err
+	}
+	return ""
+}
+
+type RequestBlocks struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	IndexHave uint64 `protobuf:"varint,1,opt,name=index_have,json=indexHave,proto3" json:"index_have,omitempty"`
+	IndexNeed uint64 `protobuf:"varint,2,opt,name=index_need,json=indexNeed,proto3" json:"index_need,omitempty"`
+}
+
+func (x *RequestBlocks) Reset() {
+	*x = RequestBlocks{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_message_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RequestBlocks) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RequestBlocks) ProtoMessage() {}
+
+func (x *RequestBlocks) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_message_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RequestBlocks.ProtoReflect.Descriptor instead.
+func (*RequestBlocks) Descriptor() ([]byte, []int) {
+	return file_proto_message_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *RequestBlocks) GetIndexHave() uint64 {
+	if x != nil {
+		return x.IndexHave
+	}
+	return 0
+}
+
+func (x *RequestBlocks) GetIndexNeed() uint64 {
+	if x != nil {
+		return x.IndexNeed
+	}
+	return 0
+}
+
+type ResponseBlocks struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Block     []*entity.Block `protobuf:"bytes,1,rep,name=block,proto3" json:"block,omitempty"`
+	IsUpdated string          `protobuf:"bytes,2,opt,name=is_updated,json=isUpdated,proto3" json:"is_updated,omitempty"`
+}
+
+func (x *ResponseBlocks) Reset() {
+	*x = ResponseBlocks{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_proto_message_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ResponseBlocks) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResponseBlocks) ProtoMessage() {}
+
+func (x *ResponseBlocks) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_message_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResponseBlocks.ProtoReflect.Descriptor instead.
+func (*ResponseBlocks) Descriptor() ([]byte, []int) {
+	return file_proto_message_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ResponseBlocks) GetBlock() []*entity.Block {
+	if x != nil {
+		return x.Block
+	}
+	return nil
+}
+
+func (x *ResponseBlocks) GetIsUpdated() string {
+	if x != nil {
+		return x.IsUpdated
 	}
 	return ""
 }
@@ -137,20 +239,29 @@ var file_proto_message_proto_rawDesc = []byte{
 	0x0a, 0x13, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x2e,
 	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x07, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x1a, 0x12,
 	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x65, 0x6e, 0x74, 0x69, 0x74, 0x79, 0x2e, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x22, 0x4f, 0x0a, 0x0f, 0x47, 0x65, 0x74, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x52, 0x65,
-	0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1d, 0x0a, 0x0a, 0x69, 0x6e, 0x64, 0x65, 0x78, 0x5f, 0x68,
-	0x61, 0x76, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x09, 0x69, 0x6e, 0x64, 0x65, 0x78,
-	0x48, 0x61, 0x76, 0x65, 0x12, 0x1d, 0x0a, 0x0a, 0x69, 0x6e, 0x64, 0x65, 0x78, 0x5f, 0x6e, 0x65,
-	0x65, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x04, 0x52, 0x09, 0x69, 0x6e, 0x64, 0x65, 0x78, 0x4e,
-	0x65, 0x65, 0x64, 0x22, 0x49, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x52,
-	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x23, 0x0a, 0x05, 0x62, 0x6c, 0x6f, 0x63, 0x6b,
-	0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0d, 0x2e, 0x65, 0x6e, 0x74, 0x69, 0x74, 0x79, 0x2e,
-	0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x52, 0x05, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x12, 0x10, 0x0a, 0x03,
-	0x65, 0x72, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x65, 0x72, 0x72, 0x42, 0x2e,
-	0x5a, 0x2c, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x64, 0x72, 0x67,
-	0x6f, 0x6d, 0x65, 0x73, 0x70, 0x2f, 0x72, 0x68, 0x69, 0x7a, 0x6f, 0x6d, 0x2f, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x2f, 0x67, 0x65, 0x6e, 0x2f, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x62, 0x06,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x74, 0x6f, 0x22, 0x36, 0x0a, 0x15, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x53, 0x74, 0x72,
+	0x65, 0x61, 0x6d, 0x47, 0x65, 0x74, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x12, 0x1d, 0x0a, 0x0a, 0x69,
+	0x6e, 0x64, 0x65, 0x78, 0x5f, 0x77, 0x61, 0x6e, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52,
+	0x09, 0x69, 0x6e, 0x64, 0x65, 0x78, 0x57, 0x61, 0x6e, 0x74, 0x22, 0x4f, 0x0a, 0x16, 0x52, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x53, 0x74, 0x72, 0x65, 0x61, 0x6d, 0x47, 0x65, 0x74, 0x42,
+	0x6c, 0x6f, 0x63, 0x6b, 0x12, 0x23, 0x0a, 0x05, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x0d, 0x2e, 0x65, 0x6e, 0x74, 0x69, 0x74, 0x79, 0x2e, 0x42, 0x6c, 0x6f,
+	0x63, 0x6b, 0x52, 0x05, 0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x12, 0x10, 0x0a, 0x03, 0x65, 0x72, 0x72,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x65, 0x72, 0x72, 0x22, 0x4d, 0x0a, 0x0d, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x73, 0x12, 0x1d, 0x0a, 0x0a,
+	0x69, 0x6e, 0x64, 0x65, 0x78, 0x5f, 0x68, 0x61, 0x76, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04,
+	0x52, 0x09, 0x69, 0x6e, 0x64, 0x65, 0x78, 0x48, 0x61, 0x76, 0x65, 0x12, 0x1d, 0x0a, 0x0a, 0x69,
+	0x6e, 0x64, 0x65, 0x78, 0x5f, 0x6e, 0x65, 0x65, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x04, 0x52,
+	0x09, 0x69, 0x6e, 0x64, 0x65, 0x78, 0x4e, 0x65, 0x65, 0x64, 0x22, 0x54, 0x0a, 0x0e, 0x52, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x73, 0x12, 0x23, 0x0a, 0x05,
+	0x62, 0x6c, 0x6f, 0x63, 0x6b, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0d, 0x2e, 0x65, 0x6e,
+	0x74, 0x69, 0x74, 0x79, 0x2e, 0x42, 0x6c, 0x6f, 0x63, 0x6b, 0x52, 0x05, 0x62, 0x6c, 0x6f, 0x63,
+	0x6b, 0x12, 0x1d, 0x0a, 0x0a, 0x69, 0x73, 0x5f, 0x75, 0x70, 0x64, 0x61, 0x74, 0x65, 0x64, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x09, 0x69, 0x73, 0x55, 0x70, 0x64, 0x61, 0x74, 0x65, 0x64,
+	0x42, 0x2e, 0x5a, 0x2c, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x64,
+	0x72, 0x67, 0x6f, 0x6d, 0x65, 0x73, 0x70, 0x2f, 0x72, 0x68, 0x69, 0x7a, 0x6f, 0x6d, 0x2f, 0x70,
+	0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x67, 0x65, 0x6e, 0x2f, 0x6d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65,
+	0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -165,19 +276,22 @@ func file_proto_message_proto_rawDescGZIP() []byte {
 	return file_proto_message_proto_rawDescData
 }
 
-var file_proto_message_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_proto_message_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_proto_message_proto_goTypes = []interface{}{
-	(*GetBlockRequest)(nil),  // 0: message.GetBlockRequest
-	(*GetBlockResponse)(nil), // 1: message.GetBlockResponse
-	(*entity.Block)(nil),     // 2: entity.Block
+	(*RequestStreamGetBlock)(nil),  // 0: message.RequestStreamGetBlock
+	(*ResponseStreamGetBlock)(nil), // 1: message.ResponseStreamGetBlock
+	(*RequestBlocks)(nil),          // 2: message.RequestBlocks
+	(*ResponseBlocks)(nil),         // 3: message.ResponseBlocks
+	(*entity.Block)(nil),           // 4: entity.Block
 }
 var file_proto_message_proto_depIdxs = []int32{
-	2, // 0: message.GetBlockResponse.block:type_name -> entity.Block
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	4, // 0: message.ResponseStreamGetBlock.block:type_name -> entity.Block
+	4, // 1: message.ResponseBlocks.block:type_name -> entity.Block
+	2, // [2:2] is the sub-list for method output_type
+	2, // [2:2] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_proto_message_proto_init() }
@@ -187,7 +301,7 @@ func file_proto_message_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_proto_message_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetBlockRequest); i {
+			switch v := v.(*RequestStreamGetBlock); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -199,7 +313,31 @@ func file_proto_message_proto_init() {
 			}
 		}
 		file_proto_message_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetBlockResponse); i {
+			switch v := v.(*ResponseStreamGetBlock); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_proto_message_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*RequestBlocks); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_proto_message_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ResponseBlocks); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -217,7 +355,7 @@ func file_proto_message_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_proto_message_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
