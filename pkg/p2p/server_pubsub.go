@@ -103,14 +103,22 @@ func (s *Server) handleSubscription(ctx context.Context, sub *pubsub.Subscriptio
 					continue
 				}
 
-				var pm Message
-				if err = pm.Decode(bytes.NewReader(msg.Data)); err != nil {
-					s.logger.Error("unmarshal block failed: ", err)
+				m := Message{
+					Type:    MsgType(*msg.Topic),
+					Payload: bytes.NewReader(msg.Data),
+				}
+				var msgNewBlock struct {
+					Header struct {
+						Index uint64
+					}
+				}
+				if err := m.Decode(&msgNewBlock); err != nil {
+					s.logger.Error(err)
 
 					continue
 				}
 
-				// s.logger.Debugw("message received from topic", "topic", msg.Topic, "msg", pm)
+				s.logger.Debugw("message received from topic", "topic", msg.Topic, "msg", msgNewBlock)
 			}
 		}
 	}

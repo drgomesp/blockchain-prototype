@@ -1,27 +1,25 @@
 package rhz
 
-import (
-	"context"
+import "go.uber.org/zap"
 
-	"github.com/drgomesp/rhizom/pkg/p2p"
-)
-
-type MsgHandlerFunc func(msg interface{}) error
-
-var handlers = map[p2p.MsgType]MsgHandlerFunc{
-	MsgGetBlocksRequest:  HandleGetBlocksRequest,
-	MsgGetBlocksResponse: HandleGetBlocksResponse,
+type NetworkHandler struct {
+	logger *zap.SugaredLogger
 }
 
-func HandleMessage(ctx context.Context, rw p2p.MsgReadWriter) error {
-	msg, err := rw.ReadMsg(ctx)
-	if err != nil {
-		return err
+func NewNetworkHandler(logger *zap.SugaredLogger) *NetworkHandler {
+	return &NetworkHandler{
+		logger: logger,
 	}
+}
 
-	if handlerFunc := handlers[msg.Type]; handlerFunc != nil {
-		return handlerFunc(msg)
-	}
+func (h *NetworkHandler) HandleRequest(peer *Peer, msg MessagePacket) (MessagePacket, error) {
+	h.logger.Debugw("handling request", "peer", peer, "msg", msg)
+
+	return nil, nil
+}
+
+func (h *NetworkHandler) HandleResponse(peer *Peer, msg MessagePacket) error {
+	h.logger.Debugw("handling response", "peer", peer, "msg", msg)
 
 	return nil
 }

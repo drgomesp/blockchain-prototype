@@ -46,8 +46,9 @@ var topics = []string{
 }
 
 type FullNode struct {
-	node   *node.Node
-	logger *zap.SugaredLogger
+	node         *node.Node
+	logger       *zap.SugaredLogger
+	peerExchange rhz.PeerExchange
 
 	p2pServer *p2p.Server
 }
@@ -68,13 +69,14 @@ func NewFullNode(logger *zap.SugaredLogger) (*FullNode, error) {
 	}
 
 	fullNode := &FullNode{
-		node:      n,
-		logger:    logger,
-		p2pServer: n.Server(),
+		node:         n,
+		logger:       logger,
+		p2pServer:    n.Server(),
+		peerExchange: rhz.NewNetworkHandler(logger),
 	}
 
 	n.RegisterAPIs(nil)
-	n.RegisterProtocols(fullNode.Protocols()...)
+	n.RegisterProtocols(fullNode.Protocols(fullNode.peerExchange)...)
 	n.RegisterServices(fullNode)
 
 	return fullNode, nil
@@ -88,7 +90,7 @@ func (n *FullNode) Start(ctx context.Context) error {
 		return errors.Wrap(err, "failed to start p2p server")
 	}
 
-	n.p2pServer.RegisterProtocols(n.Protocols()...)
+	n.p2pServer.RegisterProtocols(n.Protocols(n.peerExchange)...)
 
 	for {
 		select {
@@ -101,7 +103,7 @@ func (n *FullNode) Start(ctx context.Context) error {
 				if err := n.p2pServer.StreamMsg(
 					ctx,
 					ProtocolRequestBlocks,
-					rhz.GetBlocksRequest{IndexHave: 0, IndexNeed: 1},
+					rhz.GetBlocksRequest{IndexHave: 0, IndexNeed: 10},
 				); err != nil {
 					n.logger.Error(err)
 				}
@@ -120,19 +122,33 @@ func (n *FullNode) Name() string {
 	return "full_node"
 }
 
-func (n *FullNode) Protocols() []p2p.Protocol {
+func (n *FullNode) Protocols(backend rhz.PeerExchange) []p2p.Protocol {
 	return []p2p.Protocol{
 		{
 			ID:  ProtocolRequestBlocks,
-			Run: rhz.HandleMessage,
+			Run: n.requestHandler(backend),
 		},
 		{
 			ID:  ProtocolResponseBlocks,
-			Run: rhz.HandleMessage,
+			Run: n.responseHandler(backend),
 		},
 		{
 			ID:  "rhz_test",
-			Run: rhz.HandleMessage,
+			Run: n.requestHandler(backend),
 		},
+	}
+}
+
+func (n *FullNode) requestHandler(backend rhz.PeerExchange) func(ctx context.Context, rw p2p.MsgReadWriter) error {
+	return func(ctx context.Context, rw p2p.MsgReadWriter) error {
+		peer := rhz.NewPeer(rw)
+		return rhz.HandleRequestMsg(ctx, backend, peer)
+	}
+}
+
+func (n *FullNode) responseHandler(backend rhz.PeerExchange) func(ctx context.Context, rw p2p.MsgReadWriter) error {
+	return func(ctx context.Context, rw p2p.MsgReadWriter) error {
+		peer := rhz.NewPeer(rw)
+		return rhz.HandleResponseMsg(ctx, backend, peer)
 	}
 }

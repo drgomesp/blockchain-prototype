@@ -1,6 +1,9 @@
 package rhz
 
 import (
+	"context"
+	"log"
+
 	"github.com/drgomesp/rhizom/pkg/p2p"
 )
 
@@ -17,3 +20,50 @@ const (
 	// MsgNewBlock represents a new block.
 	MsgNewBlock = p2p.MsgType("NewBlock")
 )
+
+type (
+	RequestMessageHandler func(PeerExchange, Message, *Peer) (MessagePacket, error)
+	ResponseMsgHandler    func(PeerExchange, Message, *Peer) error
+)
+
+var requestHandlers = map[p2p.MsgType]RequestMessageHandler{
+	MsgGetBlocksRequest: HandleGetBlocksRequest,
+}
+
+var responseHandlers = map[p2p.MsgType]ResponseMsgHandler{
+	MsgGetBlocksResponse: HandleGetBlocksResponse,
+}
+
+func HandleRequestMsg(ctx context.Context, api PeerExchange, peer *Peer) error {
+	msg, err := peer.rw.ReadMsg(ctx)
+	if err != nil {
+		return err
+	}
+
+	if handlerFunc := requestHandlers[msg.Type]; handlerFunc != nil {
+		res, err := handlerFunc(api, msg, peer)
+		if err != nil {
+			return err
+		}
+
+		log.Println(res)
+	}
+
+	return nil
+}
+
+func HandleResponseMsg(ctx context.Context, api PeerExchange, peer *Peer) error {
+	msg, err := peer.rw.ReadMsg(ctx)
+	if err != nil {
+		return err
+	}
+
+	if handlerFunc := responseHandlers[msg.Type]; handlerFunc != nil {
+		err := handlerFunc(api, msg, peer)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

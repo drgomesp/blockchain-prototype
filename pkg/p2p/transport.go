@@ -1,13 +1,13 @@
 package p2p
 
 import (
-	"bytes"
 	"context"
-	"io/ioutil"
+	"reflect"
 
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/pkg/errors"
+	"github.com/ugorji/go/codec"
 )
 
 type streamTransport struct {
@@ -20,12 +20,18 @@ func (t *streamTransport) WriteMsg(ctx context.Context, msg *Message) error {
 		_ = t.stream.Close()
 	}()
 
-	encoded, err := msg.Encode()
-	if err != nil {
-		return err
+	var ch codec.CborHandle
+	ch.MapType = reflect.TypeOf(map[string]interface{}(nil))
+	h := &ch
+
+	var data []byte
+
+	enc := codec.NewEncoderBytes(&data, h)
+	if err := enc.Encode(msg.Payload); err != nil {
+		return errors.Wrap(err, "message encode failed")
 	}
 
-	if _, err := t.stream.Write(encoded.Data); err != nil {
+	if _, err := t.stream.Write(data); err != nil {
 		return err
 	}
 
@@ -37,18 +43,11 @@ func (t *streamTransport) ReadMsg(ctx context.Context) (*Message, error) {
 		return nil, errors.New("stream is empty")
 	}
 
-	data, err := ioutil.ReadAll(t.stream)
-	if err != nil {
-		return nil, errors.Wrap(err, "stream message read failed")
-	}
-
-	var msg Message
-	if err := msg.Decode(bytes.NewReader(data)); err != nil {
-		return nil, err
-	}
+	msg := new(Message)
+	msg.Payload = t.stream
 	msg.Type = MsgType(t.protocolID)
 
-	return &msg, nil
+	return msg, nil
 }
 
 func (t *streamTransport) SetProtocolID(pid protocol.ID) {

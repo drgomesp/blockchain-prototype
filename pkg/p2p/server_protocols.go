@@ -38,65 +38,13 @@ func (s *Server) registerProtocols(ctx context.Context) {
 			err = handler(ctx, p.conn.transport)
 			if err != nil {
 				s.logger.Error(err)
-				// return
 			}
-
-			//err = s.WriteMsg(ctx, p.co)
-			//if err != nil {
-			//	s.logger.Error(err)
-			//
-			//	return
-			//}
-
-			//encoded, err := msg.Encode()
-			//if err != nil {
-			//	s.logger.Error(err)
-			//
-			//	return
-			//}
-			//
-			//if err := stream(ctx, s.dht.Host(), pid, protocol.ID(protocolID), encoded.Data); err != nil {
-			//	s.logger.Error(err)
-			//}
 		}
 	}
 
 	for _, proto := range s.protocols {
 		go s.dht.Host().SetStreamHandler(protocol.ID(proto.ID), streaming(protocol.ID(proto.ID), proto.Run))
 	}
-}
-
-func (s *Server) StreamMsg(ctx context.Context, msgType MsgType, msg interface{}) (err error) {
-	var found peer.ID
-	for tn := range s.topics {
-		found, err = s.findPeerByTopic(tn)
-		if found != "" {
-			err = nil
-			break
-		}
-	}
-
-	if err != nil {
-		return err
-	}
-
-	var ch codec.CborHandle
-	ch.MapType = reflect.TypeOf(map[string]interface{}(nil))
-	h := &ch
-
-	var data []byte
-
-	enc := codec.NewEncoderBytes(&data, h)
-	if err := enc.Encode(msg); err != nil {
-		return errors.Wrap(err, "message encode failed")
-	}
-
-	if err := stream(ctx, s.dht.Host(), found, protocol.ID(msgType), data); err != nil {
-		return err
-	}
-
-	s.logger.Debugw("message sent", "peer", found.ShortString(), "msg", msg)
-	return nil
 }
 
 func (s *Server) findPeerByTopic(topicName string) (peer.ID, error) {
@@ -142,5 +90,38 @@ func stream(ctx context.Context, host host.Host, pid peer.ID, protocol protocol.
 		return err
 	}
 
+	return nil
+}
+
+func (s *Server) StreamMsg(ctx context.Context, msgType MsgType, msg interface{}) (err error) {
+	var found peer.ID
+	for tn := range s.topics {
+		found, err = s.findPeerByTopic(tn)
+		if found != "" {
+			err = nil
+			break
+		}
+	}
+
+	if err != nil {
+		return err
+	}
+
+	var ch codec.CborHandle
+	ch.MapType = reflect.TypeOf(map[string]interface{}(nil))
+	h := &ch
+
+	var data []byte
+
+	enc := codec.NewEncoderBytes(&data, h)
+	if err := enc.Encode(msg); err != nil {
+		return errors.Wrap(err, "message encode failed")
+	}
+
+	if err := stream(ctx, s.dht.Host(), found, protocol.ID(msgType), data); err != nil {
+		return err
+	}
+
+	s.logger.Debugw("message sent", "peer", found.ShortString(), "msg", msg)
 	return nil
 }
