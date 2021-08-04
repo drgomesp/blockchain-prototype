@@ -38,7 +38,8 @@ type Server struct {
 	host      host.Host          // host is the actual p2p node within the network.
 	dht       *kaddht.IpfsDHT    // dht discovery service.
 	pubSub    *pubsub.PubSub     // pubSub is a p2p publish/subscribe service.
-	peer      *Peer              // Peer is the local p2p peer.
+	topics    map[string]*pubsub.Topic
+	peer      *Peer // Peer is the local p2p peer.
 
 	// Control flags and channels
 	running         bool              // running controls the run loop.
@@ -61,6 +62,7 @@ func NewServer(config Config, opt ...ServerOption) (*Server, error) {
 	srv := &Server{
 		cfg:     config,
 		dht:     new(kaddht.IpfsDHT),
+		topics:  make(map[string]*pubsub.Topic, 0),
 		running: false,
 		quit:    make(chan bool),
 		peerChan: peerChannels{
@@ -103,7 +105,6 @@ func (s *Server) Start(ctx context.Context) error {
 
 	s.connectBootstrapPeers(ctx)
 	s.bootstrapNetwork(ctx)
-	s.registerProtocols(ctx)
 	s.setupSubscriptions(ctx)
 
 	return nil
@@ -145,7 +146,7 @@ func (s *Server) setupLocalHost(ctx context.Context) error {
 		return errors.Wrap(err, "h peer setup failed") // TODO: change to const
 	}
 
-	p, err := NewPeer(s.pubSub, *host.InfoFromHost(h))
+	p, err := NewPeer(host.InfoFromHost(h), s.pubSub)
 	if err != nil {
 		return errors.Wrap(err, "peer setup failed") // TODO: change to const
 	}
@@ -160,7 +161,7 @@ func (s *Server) setupLocalHost(ctx context.Context) error {
 func (s *Server) ping(ctx context.Context) {
 	for {
 		for _, p := range s.peersConnected {
-			if err := s.host.Connect(ctx, p.Info()); err != nil {
+			if err := s.host.Connect(ctx, *p.info); err != nil {
 				s.RemovePeer(p)
 				s.logger.Debug("peer dropped ", p)
 
@@ -182,11 +183,10 @@ running:
 		case p := <-s.peerChan.connected:
 			{
 				s.peersConnected[p.info.ID] = p
-				s.logger.Debug("peer added ", p)
 			}
 		case <-time.After(networkStatePeriod):
 			{
-				s.logger.Infow("online", "connected", len(s.peersConnected))
+				// s.logger.Infow("online", "connected", len(s.peersConnected))
 			}
 		}
 	}
@@ -201,7 +201,7 @@ func (s *Server) AddPeer(ctx context.Context, peer *Peer) {
 			return
 		}
 
-		if err = s.dht.Host().Connect(ctx, peer.info); err != nil {
+		if err = s.dht.Host().Connect(ctx, *peer.info); err != nil {
 			s.logger.Warnw("couldn't connect to peer", "err", err)
 
 			continue
@@ -209,7 +209,7 @@ func (s *Server) AddPeer(ctx context.Context, peer *Peer) {
 
 		var p *Peer
 
-		if p, err = NewPeer(s.pubSub, peer.info); err != nil {
+		if p, err = NewPeer(peer.info, s.pubSub); err != nil {
 			s.logger.Error("failed to initialize peer: ", err)
 
 			continue
@@ -235,5 +235,6 @@ func (s *Server) PeerConnected(p *Peer) bool {
 
 // RegisterProtocols registers the server protocol set.
 func (s *Server) RegisterProtocols(protocols ...Protocol) {
-	s.protocols = append(s.protocols, protocols...)
+	s.protocols = protocols
+	s.registerProtocols(context.Background())
 }

@@ -1,29 +1,46 @@
 package p2p
 
 import (
-	"reflect"
+	"context"
+	"io"
 
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/ugorji/go/codec"
 )
 
+type MessageHandler func(req MsgDecoder) (res MsgDecoder, err error)
+
 type MsgType string
+
+type MsgDecoder interface {
+	Decode(v interface{}) error
+}
 
 type Message struct {
 	Type    MsgType
-	Payload interface{}
+	Payload io.Reader
 }
 
 func (m *Message) Decode(v interface{}) error {
 	var ch codec.CborHandle
-	ch.MapType = reflect.TypeOf(map[string]interface{}(nil))
 	h := &ch
 
-	msg := v.(*pubsub.Message)
-	m.Type = MsgType(*msg.Topic)
-	m.Payload = new(interface{})
+	dec := codec.NewDecoder(m.Payload, h)
 
-	dec := codec.NewDecoderBytes(msg.Data, h)
+	return dec.Decode(&v)
+}
 
-	return dec.Decode(&m.Payload)
+// MsgWriter of messages.
+type MsgWriter interface {
+	WriteMsg(context.Context, *Message) error
+}
+
+// MsgReader of messages.
+type MsgReader interface {
+	ReadMsg(context.Context) (*Message, error)
+}
+
+// MsgReadWriter sends and receives messages.
+type MsgReadWriter interface {
+	MsgWriter
+	MsgReader
 }

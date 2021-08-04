@@ -38,7 +38,10 @@ func (p *pingPongService) Stop(_ context.Context) error {
 func (p *pingPongService) Protocols() []p2p.Protocol {
 	return []p2p.Protocol{
 		{
-			Name: "ping-pong",
+			ID: "ping-pong",
+			RunSync: func(peer *p2p.Peer) error {
+				panic("implement me")
+			},
 		},
 	}
 }
