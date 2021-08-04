@@ -2,6 +2,7 @@ package rhz
 
 import (
 	"context"
+	"errors"
 	"log"
 
 	"github.com/drgomesp/rhizom/pkg/p2p"
@@ -22,11 +23,11 @@ const (
 )
 
 type (
-	RequestMessageHandler func(PeerExchange, Message, *Peer) (MessagePacket, error)
-	ResponseMsgHandler    func(PeerExchange, Message, *Peer) error
+	RequestMsgHandler  func(PeerExchange, Message, *Peer) (MessagePacket, error)
+	ResponseMsgHandler func(PeerExchange, Message, *Peer) error
 )
 
-var requestHandlers = map[p2p.MsgType]RequestMessageHandler{
+var requestHandlers = map[p2p.MsgType]RequestMsgHandler{
 	MsgGetBlocksRequest: HandleGetBlocksRequest,
 }
 
@@ -46,6 +47,7 @@ func HandleRequestMsg(ctx context.Context, api PeerExchange, peer *Peer) error {
 			return err
 		}
 
+		log.Println("what to do with this?")
 		log.Println(res)
 	}
 
@@ -59,11 +61,8 @@ func HandleResponseMsg(ctx context.Context, api PeerExchange, peer *Peer) error 
 	}
 
 	if handlerFunc := responseHandlers[msg.Type]; handlerFunc != nil {
-		err := handlerFunc(api, msg, peer)
-		if err != nil {
-			return err
-		}
+		return handlerFunc(api, msg, peer)
 	}
 
-	return nil
+	return errors.New("handler function not supported")
 }

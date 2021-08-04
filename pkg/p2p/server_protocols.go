@@ -122,6 +122,5 @@ func (s *Server) StreamMsg(ctx context.Context, msgType MsgType, msg interface{}
 		return err
 	}
 
-	s.logger.Debugw("message sent", "peer", found.ShortString(), "msg", msg)
 	return nil
 }

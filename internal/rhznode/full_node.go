@@ -72,7 +72,7 @@ func NewFullNode(logger *zap.SugaredLogger) (*FullNode, error) {
 		node:         n,
 		logger:       logger,
 		p2pServer:    n.Server(),
-		peerExchange: rhz.NewNetworkHandler(logger),
+		peerExchange: rhz.NewHandler(logger),
 	}
 
 	n.RegisterAPIs(nil)
@@ -100,13 +100,16 @@ func (n *FullNode) Start(ctx context.Context) error {
 			{
 				time.Sleep(time.Second * 5)
 
+				req := rhz.GetBlocksRequest{IndexHave: 0, IndexNeed: 10}
 				if err := n.p2pServer.StreamMsg(
 					ctx,
 					ProtocolRequestBlocks,
-					rhz.GetBlocksRequest{IndexHave: 0, IndexNeed: 10},
+					req,
 				); err != nil {
 					n.logger.Error(err)
 				}
+
+				n.logger.Debugw("request sent", "req", req)
 			}
 		}
 	}
