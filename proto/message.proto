@@ -1,16 +1,17 @@
 syntax = "proto3";
 
 package message;
-option go_package = "github.com/drgomesp/rhizom/proto/gen/message";
 
 import "proto/entity.proto";
 
-message GetBlockRequest {
-  uint32 have = 1;
-  uint32 want = 2;
+option go_package = "github.com/drgomesp/rhizom/proto/gen/message";
+
+message RequestBlocks {
+  uint64 index_have = 1;
+  uint64 index_need = 2;
 }
 
-message GetBlockResponse {
-  entity.Block block = 1;
-  string err = 2;
+message ResponseBlocks {
+  repeated entity.Block block = 1;
+  string is_updated = 2;
 }

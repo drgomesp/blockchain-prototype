@@ -9,7 +9,7 @@ import (
 
 	"github.com/drgomesp/rhizom/proto/gen/entity"
 	"github.com/drgomesp/rhizom/proto/gen/message"
-	"github.com/drgomesp/rhizom/proto/gen/service"
+	"github.com/drgomesp/rhizom/proto/gen/stream"
 	"google.golang.org/grpc"
 )
 
@@ -17,7 +17,7 @@ const serverAddr = "localhost:7000"
 
 var blockchain []*entity.Block
 
-func streamData(stream service.Node_GetBlockClient, ch chan<- uint32) {
+func streamData(stream stream.Block_GetBlockClient, ch chan<- uint32) {
 	defer close(ch)
 	for {
 		switch resp, err := stream.Recv(); err {
@@ -46,7 +46,7 @@ func main() {
 	}
 	defer conn.Close()
 
-	stream, err := service.NewNodeClient(conn).GetBlock(context.Background())
+	stream, err := stream.NewBlockClient(conn).GetBlock(context.Background())
 	if err != nil {
 		panic(err)
 	}

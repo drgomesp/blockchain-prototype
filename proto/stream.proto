@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package stream;
+
+import "proto/message.proto";
+
+option go_package = "github.com/drgomesp/rhizom/proto/gen/stream";
+
+service Block {
+  rpc GetBlock (stream message.RequestBlocks) returns (stream message.ResponseBlocks);
+}

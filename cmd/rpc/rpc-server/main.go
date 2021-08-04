@@ -5,14 +5,26 @@ import (
 	"log"
 
 	"github.com/drgomesp/rhizom/pkg/rpc"
+	"github.com/drgomesp/rhizom/pkg/service"
+	"github.com/drgomesp/rhizom/proto/gen/stream"
+	"google.golang.org/grpc"
+)
+
+const (
+	_port       = 7000
+	_nameServer = "server"
 )
 
 func main() {
 	fmt.Println("running server...")
 
-	serv := rpc.NewServer("server", rpc.NewStreamService())
+	setup := grpc.NewServer()
 
-	if err := serv.Start(rpc.NewListener(7000)); err != nil {
+	stream.RegisterBlockServer(setup, service.NewBlockStream())
+
+	server := rpc.NewServer(_nameServer, setup)
+
+	if err := server.Start(rpc.NewListener(_port)); err != nil {
 		log.Fatalf("server failed: %s", err)
 	}
 
