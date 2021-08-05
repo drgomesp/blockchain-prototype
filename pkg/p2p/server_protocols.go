@@ -13,7 +13,7 @@ import (
 	"github.com/ugorji/go/codec"
 )
 
-type msgHandlerFunc func(ctx context.Context, req MsgReadWriter) error
+type msgHandlerFunc func(context.Context, MsgReadWriter) error
 
 func (s *Server) registerProtocols(ctx context.Context) {
 	streaming := func(protocolID protocol.ID, handler msgHandlerFunc) network.StreamHandler {

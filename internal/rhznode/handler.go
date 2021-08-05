@@ -15,7 +15,7 @@ func NewHandler(logger *zap.SugaredLogger) *Handler {
 	}
 }
 
-func (h *Handler) ReceiveRequest(peer *rhz.Peer, msg rhz.MessagePacket) (rhz.MessagePacket, error) {
+func (h *Handler) GetBlocks(peer *rhz.Peer, msg *rhz.MsgGetBlocks) (*rhz.MsgBlocks, error) {
 	h.logger.Debugw("handling request", "peer", peer, "msg", msg)
 
 	return &rhz.MsgBlocks{
@@ -26,7 +26,7 @@ func (h *Handler) ReceiveRequest(peer *rhz.Peer, msg rhz.MessagePacket) (rhz.Mes
 	}, nil
 }
 
-func (h *Handler) ReceiveResponse(peer *rhz.Peer, msg rhz.MessagePacket) error {
+func (h *Handler) Blocks(peer *rhz.Peer, msg *rhz.MsgBlocks) error {
 	h.logger.Debugw("handling response", "peer", peer, "msg", msg)
 
 	return nil
