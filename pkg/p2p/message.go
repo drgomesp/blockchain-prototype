@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/ugorji/go/codec"
@@ -27,6 +28,10 @@ func (m *Message) Decode(v interface{}) error {
 	dec := codec.NewDecoder(m.Payload, h)
 
 	return dec.Decode(&v)
+}
+
+func (m Message) String() string {
+	return fmt.Sprintf("<%s %s>\n", m.Type, m.Payload)
 }
 
 // MsgWriter of messages.

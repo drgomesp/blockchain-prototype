@@ -8,10 +8,9 @@ type Message interface {
 
 // PeerExchange is a bi-directional protocol for peer message exchange.
 type PeerExchange interface {
-	// HandleRequest something from the peer.
+	// ReceiveRequest something from the peer.
 	// If there's a response, it will come in the form of a message.
-	HandleRequest(*Peer, MessagePacket) (MessagePacket, error)
-
-	// HandleResponse handles a message as a reply from the peer.
-	HandleResponse(*Peer, MessagePacket) error
+	ReceiveRequest(*Peer, MessagePacket) (MessagePacket, error)
+	// ReceiveResponse handles a message as a reply from the peer.
+	ReceiveResponse(*Peer, MessagePacket) error
 }

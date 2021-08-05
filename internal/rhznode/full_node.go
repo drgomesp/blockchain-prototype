@@ -17,32 +17,17 @@ var bootstrapAddrs = []string{
 }
 
 const (
-	rhzPrefix = "/rhz/"
-	devNet    = "default_2b678c95-27d5-4f09-bf38-a62be2c5339b"
-	testNet   = "rhz_testnet_e19d2c16-8c39-4f0f-8c88-2427e37c12bb"
-	net       = devNet
-
-	TopicBlocks       = rhzPrefix + "blk/" + net
-	TopicProducers    = rhzPrefix + "prc/" + net
-	TopicTransactions = rhzPrefix + "tx/" + net
-	TopicRequestSync  = rhzPrefix + "blkchain/req/" + net
-
-	ProtocolRequestBlocks     = rhzPrefix + "blocks/req/" + net
-	ProtocolResponseBlocks    = rhzPrefix + "blocks/resp/" + net
-	ProtocolRequestDelegates  = rhzPrefix + "delegates/req/" + net
-	ProtocolResponseDelegates = rhzPrefix + "delegates/resp/" + net
-
 	p2pServerMaxPeers    = 5
 	p2pServerPingTimeout = time.Second * 5
 )
 
 var topics = []string{
-	TopicBlocks,
-	// TopicProducers,
-	// TopicTransactions,
-	// TopicRequestSync,
-	ProtocolRequestBlocks,
-	ProtocolResponseBlocks,
+	rhz.TopicBlocks,
+	rhz.TopicProducers,
+	rhz.TopicTransactions,
+	rhz.TopicRequestSync,
+	rhz.ProtocolRequestBlocks,
+	rhz.ProtocolResponseBlocks,
 }
 
 type FullNode struct {
@@ -72,12 +57,11 @@ func NewFullNode(logger *zap.SugaredLogger) (*FullNode, error) {
 		node:         n,
 		logger:       logger,
 		p2pServer:    n.Server(),
-		peerExchange: rhz.NewHandler(logger),
+		peerExchange: NewHandler(logger),
 	}
 
 	n.RegisterAPIs(nil)
 	n.RegisterProtocols(fullNode.Protocols(fullNode.peerExchange)...)
-	n.RegisterServices(fullNode)
 
 	return fullNode, nil
 }
@@ -92,24 +76,29 @@ func (n *FullNode) Start(ctx context.Context) error {
 
 	n.p2pServer.RegisterProtocols(n.Protocols(n.peerExchange)...)
 
+	// factor := 1
+
 	for {
 		select {
 		case <-ctx.Done():
 			return n.Stop(ctx)
 		default:
 			{
-				time.Sleep(time.Second * 5)
-
-				req := rhz.GetBlocksRequest{IndexHave: 0, IndexNeed: 10}
-				if err := n.p2pServer.StreamMsg(
-					ctx,
-					ProtocolRequestBlocks,
-					req,
-				); err != nil {
-					n.logger.Error(err)
-				}
-
-				n.logger.Debugw("request sent", "req", req)
+				//time.Sleep(time.Second * time.Duration(factor))
+				//
+				//req := rhz.MsgGetBlocks{IndexHave: 0, IndexNeed: 10 * uint64(factor)}
+				//if err := n.p2pServer.StreamMsg(
+				//	ctx,
+				//	rhz.ProtocolRequestBlocks,
+				//	req,
+				//); err != nil {
+				//	n.logger.Warn(err)
+				//
+				//	break
+				//}
+				//
+				//factor++
+				//n.logger.Debugw("request sent", "req", req)
 			}
 		}
 	}
@@ -128,30 +117,38 @@ func (n *FullNode) Name() string {
 func (n *FullNode) Protocols(backend rhz.PeerExchange) []p2p.Protocol {
 	return []p2p.Protocol{
 		{
-			ID:  ProtocolRequestBlocks,
+			ID:  rhz.ProtocolRequestBlocks,
 			Run: n.requestHandler(backend),
 		},
 		{
-			ID:  ProtocolResponseBlocks,
+			ID:  rhz.ProtocolResponseBlocks,
 			Run: n.responseHandler(backend),
 		},
 		{
-			ID:  "rhz_test",
+			ID:  rhz.ProtocolRequestDelegates,
 			Run: n.requestHandler(backend),
 		},
+		{
+			ID:  rhz.ProtocolResponseDelegates,
+			Run: n.requestHandler(backend),
+		},
+		//{
+		//	ID:  "rhz_test",
+		//	Run: n.requestHandler(backend),
+		//},
 	}
 }
 
 func (n *FullNode) requestHandler(backend rhz.PeerExchange) func(ctx context.Context, rw p2p.MsgReadWriter) error {
 	return func(ctx context.Context, rw p2p.MsgReadWriter) error {
 		peer := rhz.NewPeer(rw)
-		return rhz.HandleRequestMsg(ctx, backend, peer)
+		return rhz.HandleRequest(ctx, backend, peer)
 	}
 }
 
 func (n *FullNode) responseHandler(backend rhz.PeerExchange) func(ctx context.Context, rw p2p.MsgReadWriter) error {
 	return func(ctx context.Context, rw p2p.MsgReadWriter) error {
 		peer := rhz.NewPeer(rw)
-		return rhz.HandleResponseMsg(ctx, backend, peer)
+		return rhz.HandleResponse(ctx, backend, peer)
 	}
 }

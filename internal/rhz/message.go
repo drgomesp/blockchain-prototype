@@ -6,12 +6,12 @@ type MessagePacket interface {
 	Type() p2p.MsgType
 }
 
-type GetBlocksRequest struct {
+type MsgGetBlocks struct {
 	IndexHave uint64
 	IndexNeed uint64
 }
 
-type GetBlocksResponse struct {
+type MsgBlocks struct {
 	IsUpdated bool
 	Chain     []struct {
 		Header struct {
@@ -20,10 +20,10 @@ type GetBlocksResponse struct {
 	}
 }
 
-func (g *GetBlocksRequest) Type() p2p.MsgType {
-	return MsgGetBlocksRequest
+func (g *MsgGetBlocks) Type() p2p.MsgType {
+	return MsgTypeGetBlocks
 }
 
-func (g *GetBlocksResponse) Type() p2p.MsgType {
-	return MsgGetBlocksResponse
+func (g *MsgBlocks) Type() p2p.MsgType {
+	return MsgTypeBlocks
 }

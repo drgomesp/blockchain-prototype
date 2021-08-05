@@ -100,7 +100,7 @@ func (s *Server) handleSubscription(ctx context.Context, sub *pubsub.Subscriptio
 				if err != nil {
 					s.logger.Error("failed get next topic message: ", err)
 
-					continue
+					break
 				}
 
 				m := Message{
@@ -115,10 +115,10 @@ func (s *Server) handleSubscription(ctx context.Context, sub *pubsub.Subscriptio
 				if err := m.Decode(&msgNewBlock); err != nil {
 					s.logger.Error(err)
 
-					continue
+					break
 				}
 
-				s.logger.Debugw("message received from topic", "topic", msg.Topic, "msg", msgNewBlock)
+				s.logger.Debugw("msg", "topic", msg.Topic, "msg", msgNewBlock)
 			}
 		}
 	}
