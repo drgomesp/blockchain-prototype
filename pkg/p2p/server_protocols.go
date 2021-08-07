@@ -1,19 +1,16 @@
 package p2p
 
 import (
-	"bytes"
 	"context"
 	"io"
 	"io/ioutil"
 	"math/rand"
-	"reflect"
 
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/pkg/errors"
-	"github.com/ugorji/go/codec"
 )
 
 var ErrNoPeersFound = errors.New("no peers found")
@@ -35,7 +32,7 @@ func (s *Server) registerProtocols(ctx context.Context) {
 				return
 			}
 
-			s.AddPeer(ctx, p)
+			go s.AddPeer(ctx, p)
 
 			rpid, msg, err := handler(ctx, netStream)
 			if err != nil {
@@ -48,18 +45,7 @@ func (s *Server) registerProtocols(ctx context.Context) {
 				return
 			}
 
-			var ch codec.CborHandle
-			h := &ch
-
-			var data []byte
-
-			enc := codec.NewEncoderBytes(&data, h)
-			if err := enc.Encode(msg); err != nil {
-				s.logger.Error(err)
-				return
-			}
-
-			if err := stream(ctx, s.host, pid, protocol.ID(rpid), bytes.NewReader(data)); err != nil {
+			if err = Send(ctx, s, MsgType(rpid), msg); err != nil {
 				s.logger.Error(err)
 				return
 			}
@@ -101,6 +87,23 @@ func (s *Server) findPeerByTopic(topicName string) (peer.ID, error) {
 	return chosen, nil
 }
 
+func (s *Server) WriteMsg(ctx context.Context, msg *Message) error {
+	p, err := s.findPeerByTopic(string(msg.Type))
+	if err != nil {
+		return err
+	}
+
+	if err := stream(ctx, s.dht.Host(), p, protocol.ID(msg.Type), msg.Payload); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Server) ReadMsg(ctx context.Context) (*Message, error) {
+	panic("implement me")
+}
+
 func stream(ctx context.Context, host host.Host, pid peer.ID, protocol protocol.ID, msg io.Reader) error {
 	out, err := host.NewStream(ctx, pid, protocol)
 	if err != nil {
@@ -117,38 +120,6 @@ func stream(ctx context.Context, host host.Host, pid peer.ID, protocol protocol.
 	}
 
 	if _, err := out.Write(data); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (s *Server) StreamMsg(ctx context.Context, msgType MsgType, msg interface{}) (err error) {
-	var found peer.ID
-	for tn := range s.topics {
-		found, err = s.findPeerByTopic(tn)
-		if found != "" {
-			err = nil
-			break
-		}
-	}
-
-	if err != nil {
-		return err
-	}
-
-	var ch codec.CborHandle
-	ch.MapType = reflect.TypeOf(map[string]interface{}(nil))
-	h := &ch
-
-	var data []byte
-
-	enc := codec.NewEncoderBytes(&data, h)
-	if err := enc.Encode(msg); err != nil {
-		return errors.Wrap(err, "message encode failed")
-	}
-
-	if err := stream(ctx, s.dht.Host(), found, protocol.ID(msgType), bytes.NewReader(data)); err != nil {
 		return err
 	}
 

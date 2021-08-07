@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -17,9 +18,31 @@ type MsgDecoder interface {
 	Decode(v interface{}) error
 }
 
+// MsgWriter of messages.
+type MsgWriter interface {
+	WriteMsg(context.Context, *Message) error
+}
+
+// MsgReader of messages.
+type MsgReader interface {
+	ReadMsg(context.Context) (*Message, error)
+}
+
+// MsgReadWriter sends and receives messages.
+type MsgReadWriter interface {
+	MsgWriter
+	MsgReader
+}
+
+var NilMessage = Message{}
+
 type Message struct {
 	Type    MsgType
 	Payload io.Reader
+}
+
+func (m Message) String() string {
+	return fmt.Sprintf("<%s %s>\n", m.Type, m.Payload)
 }
 
 func (m *Message) Decode(v interface{}) error {
@@ -35,22 +58,19 @@ func (m *Message) Decode(v interface{}) error {
 	return dec.Decode(&v)
 }
 
-func (m Message) String() string {
-	return fmt.Sprintf("<%s %s>\n", m.Type, m.Payload)
-}
+func Send(ctx context.Context, rw MsgReadWriter, t MsgType, payload interface{}) error {
+	var ch codec.CborHandle
+	h := &ch
 
-// MsgWriter of messages.
-type MsgWriter interface {
-	WriteMsg(context.Context, *Message) error
-}
+	var data []byte
+	enc := codec.NewEncoderBytes(&data, h)
 
-// MsgReader of messages.
-type MsgReader interface {
-	ReadMsg(context.Context) (*Message, error)
-}
+	if err := enc.Encode(payload); err != nil {
+		return err
+	}
 
-// MsgReadWriter sends and receives messages.
-type MsgReadWriter interface {
-	MsgWriter
-	MsgReader
+	return rw.WriteMsg(ctx, &Message{
+		Type:    t,
+		Payload: bytes.NewReader(data),
+	})
 }

@@ -34,6 +34,11 @@ var (
 	}
 )
 
+type (
+	RequestMsgHandler  func(context.Context, API, Message, *Peer) (p2p.ProtocolType, MessagePacket, error)
+	ResponseMsgHandler func(context.Context, API, Message, *Peer) error
+)
+
 func ProtocolHandlerFunc(msgType uint, api API) p2p.StreamHandlerFunc {
 	return func(ctx context.Context, stream network.Stream) (p2p.ProtocolType, interface{}, error) {
 		switch msgType {
@@ -46,11 +51,6 @@ func ProtocolHandlerFunc(msgType uint, api API) p2p.StreamHandlerFunc {
 		return p2p.NilProtocol, nil, errors.New("not implemented")
 	}
 }
-
-type (
-	RequestMsgHandler  func(context.Context, API, Message, *Peer) (p2p.ProtocolType, MessagePacket, error)
-	ResponseMsgHandler func(context.Context, API, Message, *Peer) error
-)
 
 func HandleRequest(ctx context.Context, api API, peer network.Stream) (p2p.ProtocolType, interface{}, error) {
 	msg := &p2p.Message{

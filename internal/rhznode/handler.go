@@ -21,13 +21,13 @@ func (h *Handler) GetBlocks(ctx context.Context, peer *rhz.Peer, msg rhz.MsgGetB
 	return rhz.MsgBlocks{
 		IsUpdated: true,
 		Chain: []struct{ Header struct{ Index uint64 } }{
-			{Header: struct{ Index uint64 }{Index: msg.IndexNeed * 3}},
+			{Header: struct{ Index uint64 }{Index: 9}},
 		},
 	}, nil
 }
 
 func (h *Handler) Blocks(ctx context.Context, peer *rhz.Peer, msg rhz.MsgBlocks) error {
-	h.logger.Infow("received response", "msg", msg)
+	h.logger.Infow("", "response", msg)
 
 	return nil
 }

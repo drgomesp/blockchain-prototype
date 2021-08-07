@@ -20,3 +20,5 @@ type Protocol struct {
 	// Run ...
 	Run StreamHandlerFunc
 }
+
+type protoRW struct{}

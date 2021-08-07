@@ -271,7 +271,7 @@ func (s *Server) setupProtocolConnection(
 		return nil, err
 	}
 
-	p.conn = &connection{transport: &streamTransport{stream: stream}}
+	p.conn = &connection{}
 
 	return p, nil
 }
@@ -282,12 +282,11 @@ func (s *Server) setupConnection(
 	ctx context.Context,
 	peerInfo *peer.AddrInfo,
 ) (*Peer, error) {
-	if err := s.dht.Host().Connect(ctx, *peerInfo); err != nil {
-		return nil, errors.Wrap(err, "peer connection failed")
-	}
-
-	return &Peer{
+	p := &Peer{
 		info:   peerInfo,
 		pubSub: s.pubSub,
-	}, nil
+	}
+
+	go s.AddPeer(ctx, p)
+	return p, nil
 }
