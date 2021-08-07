@@ -16,10 +16,8 @@ import (
 	"github.com/ugorji/go/codec"
 )
 
-type streamHandlerFunc func(context.Context, network.Stream) (ProtocolType, MsgDecoder, error)
-
 func (s *Server) registerProtocols(ctx context.Context) {
-	streamHandler := func(protocolID protocol.ID, handler streamHandlerFunc) network.StreamHandler {
+	streamHandler := func(protocolID protocol.ID, handler StreamHandlerFunc) network.StreamHandler {
 		return func(netStream network.Stream) {
 			defer func() {
 				_ = netStream.Close()
@@ -59,19 +57,15 @@ func (s *Server) registerProtocols(ctx context.Context) {
 
 			var data []byte
 
-			if msg, ok := msg.(*Message); ok {
-				enc := codec.NewEncoderBytes(&data, h)
-				if err := enc.Encode(msg.Payload); err != nil {
-					s.logger.Error(err)
-					return
-				}
+			enc := codec.NewEncoderBytes(&data, h)
+			if err := enc.Encode(msg); err != nil {
+				s.logger.Error(err)
+				return
+			}
 
-				if err := stream(ctx, s.host, pid, protocol.ID(rpid), msg.Payload); err != nil {
-					s.logger.Error(err)
-					return
-				}
-			} else {
-				panic("message type not supported")
+			if err := stream(ctx, s.host, pid, protocol.ID(rpid), bytes.NewReader(data)); err != nil {
+				s.logger.Error(err)
+				return
 			}
 		}
 	}

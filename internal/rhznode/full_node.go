@@ -94,6 +94,16 @@ func (n *FullNode) Start(ctx context.Context) error {
 				//
 				//	break
 				//}
+
+				//if err := n.p2pServer.StreamMsg(
+				//	ctx,
+				//	protocol.Ping,
+				//	"PING",
+				//); err != nil {
+				//	n.logger.Error(err)
+				//
+				//	break
+				//}
 			}
 		}
 	}
@@ -112,13 +122,17 @@ func (n *FullNode) Name() string {
 func (n *FullNode) Protocols(api rhz.API) []p2p.Protocol {
 	return []p2p.Protocol{
 		//{
-		//	ID:  rhz.ProtocolRequestBlocks,
-		//	Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeRequest, api),
+		//	ID:  protocol.Ping,
+		//	Run: protocol.PingHandler,
 		//},
-		//{
-		//	ID:  rhz.ProtocolResponseBlocks,
-		//	Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeResponse, api),
-		//},
+		{
+			ID:  rhz.ProtocolRequestBlocks,
+			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeRequest, api),
+		},
+		{
+			ID:  rhz.ProtocolResponseBlocks,
+			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeResponse, api),
+		},
 		//{
 		//	ID:  rhz.ProtocolRequestDelegates,
 		//	Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeRequest, api),

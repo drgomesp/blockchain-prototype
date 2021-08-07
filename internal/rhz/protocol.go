@@ -1,13 +1,11 @@
 package rhz
 
 import (
-	"bytes"
 	"context"
 
 	"github.com/drgomesp/rhizom/pkg/p2p"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/pkg/errors"
-	"github.com/ugorji/go/codec"
 )
 
 const (
@@ -37,7 +35,7 @@ var (
 )
 
 func ProtocolHandlerFunc(msgType uint, api API) p2p.StreamHandlerFunc {
-	return func(ctx context.Context, stream network.Stream) (p2p.ProtocolType, p2p.MsgDecoder, error) {
+	return func(ctx context.Context, stream network.Stream) (p2p.ProtocolType, interface{}, error) {
 		switch msgType {
 		case MsgTypeRequest:
 			return HandleRequest(ctx, api, stream)
@@ -54,7 +52,7 @@ type (
 	ResponseMsgHandler func(API, Message, *Peer) error
 )
 
-func HandleRequest(ctx context.Context, api API, peer network.Stream) (p2p.ProtocolType, p2p.MsgDecoder, error) {
+func HandleRequest(ctx context.Context, api API, peer network.Stream) (p2p.ProtocolType, interface{}, error) {
 	msg := &p2p.Message{
 		Type:    p2p.MsgType(peer.Protocol()),
 		Payload: peer,
@@ -66,22 +64,17 @@ func HandleRequest(ctx context.Context, api API, peer network.Stream) (p2p.Proto
 			return p2p.NilProtocol, nil, err
 		}
 
-		_ = res
+		//var ch codec.CborHandle
+		//h := &ch
+		//
+		//var data []byte
+		//
+		//enc := codec.NewEncoderBytes(&data, h)
+		//if err := enc.Encode(res); err != nil {
+		//	return p2p.NilProtocol, nil, err
+		//}
 
-		var ch codec.CborHandle
-		h := &ch
-
-		var data []byte
-
-		enc := codec.NewEncoderBytes(&data, h)
-		if err := enc.Encode(res); err != nil {
-			return p2p.NilProtocol, nil, err
-		}
-
-		return pid, &p2p.Message{
-			Type:    p2p.MsgType(pid),
-			Payload: bytes.NewReader(data),
-		}, nil
+		return pid, res, nil
 	}
 
 	return p2p.NilProtocol, nil, ErrRequestTypeNotSupported
