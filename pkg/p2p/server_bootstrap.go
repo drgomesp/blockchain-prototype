@@ -2,12 +2,6 @@ package p2p
 
 import (
 	"context"
-
-	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
-	"github.com/multiformats/go-multiaddr"
-	"github.com/pkg/errors"
 )
 
 // connectBootstrapPeers connects to all bootstrap peers.
@@ -48,37 +42,12 @@ func (s *Server) bootstrapNetwork(ctx context.Context) {
 	}
 }
 
-func (s *Server) openStreamWithPeer(ctx context.Context, peerID peer.ID, pid protocol.ID) (network.Stream, error) {
-	str, err := s.dht.Host().NewStream(ctx, peerID, pid)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to open stream with peer")
-	}
-
-	return str, nil
-}
-
-func (s *Server) connectPeerByAddr(ctx context.Context, addr string) (*Peer, error) {
-	peerAddr, err := multiaddr.NewMultiaddr(addr)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to initialize multiaddr")
-	}
-
-	peerInfo, err := peer.AddrInfoFromP2pAddr(peerAddr)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to load addr info from multiaddr")
-	}
-
-	return s.connectPeer(ctx, peerInfo, nil)
-}
-
-func (s *Server) connectPeer(ctx context.Context, peerInfo *peer.AddrInfo, stream network.Stream) (*Peer, error) {
-	if err := s.dht.Host().Connect(ctx, *peerInfo); err != nil {
-		return nil, errors.Wrap(err, "failed to connect to bootstrap peer")
-	}
-
-	return &Peer{
-		info:   peerInfo,
-		conn:   &connection{transport: &streamTransport{stream: stream}},
-		pubSub: s.pubSub,
-	}, nil
-}
+//
+//func (s *Server) openStreamWithPeer(ctx context.Context, peerID peer.ID, pid protocol.ID) (network.Stream, error) {
+//	str, err := s.dht.Host().NewStream(ctx, peerID, pid)
+//	if err != nil {
+//		return nil, errors.Wrap(err, "failed to open stream with peer")
+//	}
+//
+//	return str, nil
+//}

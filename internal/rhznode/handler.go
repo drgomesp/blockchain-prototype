@@ -1,6 +1,8 @@
 package rhznode
 
 import (
+	"context"
+
 	"github.com/drgomesp/rhizom/internal/rhz"
 	"go.uber.org/zap"
 )
@@ -15,19 +17,17 @@ func NewHandler(logger *zap.SugaredLogger) *Handler {
 	}
 }
 
-func (h *Handler) GetBlocks(peer *rhz.Peer, msg rhz.MsgGetBlocks) (rhz.MsgBlocks, error) {
-	h.logger.Debugw("handling request", "peer", peer, "msg", msg)
-
+func (h *Handler) GetBlocks(ctx context.Context, peer *rhz.Peer, msg rhz.MsgGetBlocks) (rhz.MsgBlocks, error) {
 	return rhz.MsgBlocks{
 		IsUpdated: true,
 		Chain: []struct{ Header struct{ Index uint64 } }{
-			{Header: struct{ Index uint64 }{Index: 123456}},
+			{Header: struct{ Index uint64 }{Index: msg.IndexNeed * 3}},
 		},
 	}, nil
 }
 
-func (h *Handler) Blocks(peer *rhz.Peer, msg rhz.MsgBlocks) error {
-	h.logger.Debugw("received response", "msg", msg)
+func (h *Handler) Blocks(ctx context.Context, peer *rhz.Peer, msg rhz.MsgBlocks) error {
+	h.logger.Infow("received response", "msg", msg)
 
 	return nil
 }

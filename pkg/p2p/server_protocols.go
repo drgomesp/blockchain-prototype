@@ -16,6 +16,8 @@ import (
 	"github.com/ugorji/go/codec"
 )
 
+var ErrNoPeersFound = errors.New("no peers found")
+
 func (s *Server) registerProtocols(ctx context.Context) {
 	streamHandler := func(protocolID protocol.ID, handler StreamHandlerFunc) network.StreamHandler {
 		return func(netStream network.Stream) {
@@ -24,21 +26,16 @@ func (s *Server) registerProtocols(ctx context.Context) {
 			}()
 
 			pid := netStream.Conn().RemotePeer()
-			// peerInfo := s.host.Peerstore().PeerInfo(pid)
+			peerInfo := s.host.Peerstore().PeerInfo(pid)
 
-			//defer func() {
-			//	_ = out.Close()
-			//}()
+			p, err := s.setupProtocolConnection(ctx, &peerInfo, netStream)
+			if err != nil {
+				s.logger.Error("stream open failed", err)
 
-			//p, err := s.connectPeer(ctx, &peerInfo, netStream)
-			//if err != nil {
-			//	s.logger.Error("stream open failed", err)
-			//
-			//	return
-			//}
+				return
+			}
 
-			// p.conn.SetProtocolID(protocolID)
-			// s.AddPeer(ctx, p)
+			s.AddPeer(ctx, p)
 
 			rpid, msg, err := handler(ctx, netStream)
 			if err != nil {
@@ -46,9 +43,8 @@ func (s *Server) registerProtocols(ctx context.Context) {
 				return
 			}
 
+			// early return if we are handling a response, which needs no communicating back
 			if rpid == NilProtocol {
-				s.logger.Debugw("request sent", "protocol", rpid, "msg", msg)
-
 				return
 			}
 
@@ -82,7 +78,7 @@ func (s *Server) findPeerByTopic(topicName string) (peer.ID, error) {
 	}
 	topic, ok := s.topics[topicName]
 	if !ok {
-		return "", errors.New("no peer available")
+		return "", ErrNoPeersFound
 	}
 
 	removeMyself := func(peers []peer.ID) []peer.ID {
@@ -99,7 +95,7 @@ func (s *Server) findPeerByTopic(topicName string) (peer.ID, error) {
 
 	peers := removeMyself(topic.ListPeers())
 	if len(peers) == 0 {
-		return "", errors.New("no available peers")
+		return "", ErrNoPeersFound
 	}
 	chosen := peers[rand.Intn(len(peers))]
 	return chosen, nil

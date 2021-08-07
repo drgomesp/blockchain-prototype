@@ -1,17 +1,19 @@
 package rhz
 
 import (
+	"context"
+
 	"github.com/drgomesp/rhizom/pkg/p2p"
 )
 
 // HandleGetBlocks handles an incoming message from a peer that is requesting us something.
-func HandleGetBlocks(backend API, msg Message, peer *Peer) (p2p.ProtocolType, MessagePacket, error) {
+func HandleGetBlocks(ctx context.Context, backend API, msg Message, peer *Peer) (p2p.ProtocolType, MessagePacket, error) {
 	var req MsgGetBlocks
 	if err := msg.Decode(&req); err != nil {
 		return "", nil, err
 	}
 
-	blocks, err := backend.GetBlocks(peer, req)
+	blocks, err := backend.GetBlocks(ctx, peer, req)
 	if err != nil {
 		return p2p.NilProtocol, nil, err
 	}
@@ -20,11 +22,11 @@ func HandleGetBlocks(backend API, msg Message, peer *Peer) (p2p.ProtocolType, Me
 }
 
 // HandleBlocks handles an incoming message from a peer that responded to our request.
-func HandleBlocks(backend API, msg Message, peer *Peer) error {
+func HandleBlocks(ctx context.Context, backend API, msg Message, peer *Peer) error {
 	var res MsgBlocks
 	if err := msg.Decode(&res); err != nil {
 		return err
 	}
 
-	return backend.Blocks(peer, res)
+	return backend.Blocks(ctx, peer, res)
 }

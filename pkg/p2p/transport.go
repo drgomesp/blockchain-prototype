@@ -49,7 +49,3 @@ func (t *streamTransport) ReadMsg(ctx context.Context) (*Message, error) {
 
 	return msg, nil
 }
-
-func (t *streamTransport) SetProtocolID(pid protocol.ID) {
-	t.protocolID = pid
-}

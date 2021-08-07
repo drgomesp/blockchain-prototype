@@ -6,6 +6,7 @@ import (
 
 	p2p "github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	router "github.com/libp2p/go-libp2p-core/routing"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
@@ -15,6 +16,7 @@ import (
 	yamux "github.com/libp2p/go-libp2p-yamux"
 	"github.com/libp2p/go-tcp-transport"
 	ws "github.com/libp2p/go-ws-transport"
+	"github.com/multiformats/go-multiaddr"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
@@ -237,4 +239,55 @@ func (s *Server) PeerConnected(p *Peer) bool {
 func (s *Server) RegisterProtocols(protocols ...Protocol) {
 	s.protocols = protocols
 	s.registerProtocols(context.Background())
+}
+
+func (s *Server) connectPeerByAddr(ctx context.Context, addr string) (*Peer, error) {
+	peerAddr, err := multiaddr.NewMultiaddr(addr)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to initialize multiaddr")
+	}
+
+	peerInfo, err := peer.AddrInfoFromP2pAddr(peerAddr)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to load addr info from multiaddr")
+	}
+
+	return s.setupConnection(ctx, peerInfo)
+}
+
+// setupProtocolConnection sets up a peer connection from an incoming network.Stream.
+func (s *Server) setupProtocolConnection(
+	ctx context.Context,
+	peerInfo *peer.AddrInfo,
+	stream network.Stream,
+) (*Peer, error) {
+	s.logger.Debugw(
+		"setting up protocol connection",
+		"protocol", stream.Protocol(), "peer", peerInfo.ID.ShortString(),
+	)
+
+	p, err := s.setupConnection(ctx, peerInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	p.conn = &connection{transport: &streamTransport{stream: stream}}
+
+	return p, nil
+}
+
+// setupProtocolConnection sets up a peer connection, runs the handshakes and tries to
+// add the connection as a Peer.
+func (s *Server) setupConnection(
+	ctx context.Context,
+	peerInfo *peer.AddrInfo,
+) (*Peer, error) {
+	if err := s.dht.Host().Connect(ctx, *peerInfo); err != nil {
+		return nil, errors.Wrap(err, "peer connection failed")
+	}
+
+	return &Peer{
+		info:   peerInfo,
+		pubSub: s.pubSub,
+	}, nil
 }

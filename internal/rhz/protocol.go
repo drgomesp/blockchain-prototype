@@ -48,8 +48,8 @@ func ProtocolHandlerFunc(msgType uint, api API) p2p.StreamHandlerFunc {
 }
 
 type (
-	RequestMsgHandler  func(API, Message, *Peer) (p2p.ProtocolType, MessagePacket, error)
-	ResponseMsgHandler func(API, Message, *Peer) error
+	RequestMsgHandler  func(context.Context, API, Message, *Peer) (p2p.ProtocolType, MessagePacket, error)
+	ResponseMsgHandler func(context.Context, API, Message, *Peer) error
 )
 
 func HandleRequest(ctx context.Context, api API, peer network.Stream) (p2p.ProtocolType, interface{}, error) {
@@ -59,20 +59,10 @@ func HandleRequest(ctx context.Context, api API, peer network.Stream) (p2p.Proto
 	}
 
 	if handlerFunc := requestHandlers[msg.Type]; handlerFunc != nil {
-		pid, res, err := handlerFunc(api, msg, nil)
+		pid, res, err := handlerFunc(ctx, api, msg, nil)
 		if err != nil {
 			return p2p.NilProtocol, nil, err
 		}
-
-		//var ch codec.CborHandle
-		//h := &ch
-		//
-		//var data []byte
-		//
-		//enc := codec.NewEncoderBytes(&data, h)
-		//if err := enc.Encode(res); err != nil {
-		//	return p2p.NilProtocol, nil, err
-		//}
 
 		return pid, res, nil
 	}
@@ -80,6 +70,7 @@ func HandleRequest(ctx context.Context, api API, peer network.Stream) (p2p.Proto
 	return p2p.NilProtocol, nil, ErrRequestTypeNotSupported
 }
 
+// HandleResponse ... TODO: change peer to an actual Peer pointer.
 func HandleResponse(ctx context.Context, api API, peer network.Stream) error {
 	msg := &p2p.Message{
 		Type:    p2p.MsgType(peer.Protocol()),
@@ -87,7 +78,7 @@ func HandleResponse(ctx context.Context, api API, peer network.Stream) error {
 	}
 
 	if handlerFunc := responseHandlers[msg.Type]; handlerFunc != nil {
-		return handlerFunc(api, msg, nil)
+		return handlerFunc(ctx, api, msg, nil)
 	}
 
 	return ErrResponseTypeNotSupported

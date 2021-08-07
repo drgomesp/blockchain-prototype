@@ -85,24 +85,26 @@ func (n *FullNode) Start(ctx context.Context) error {
 				factor := 1
 				time.Sleep(time.Second * time.Duration(factor))
 
-				//if err := n.p2pServer.StreamMsg(
-				//	ctx,
-				//	rhz.ProtocolRequestBlocks,
-				//	rhz.MsgGetBlocks{IndexHave: 0, IndexNeed: 3},
-				//); err != nil {
-				//	n.logger.Warn(err)
-				//
-				//	break
-				//}
+				if err := n.p2pServer.StreamMsg(
+					ctx,
+					rhz.ProtocolRequestBlocks,
+					rhz.MsgGetBlocks{IndexHave: 0, IndexNeed: 3},
+				); err != nil {
+					if err != p2p.ErrNoPeersFound {
+						n.logger.Error(err)
+					}
+
+					continue
+				}
 
 				//if err := n.p2pServer.StreamMsg(
 				//	ctx,
 				//	protocol.Ping,
 				//	"PING",
 				//); err != nil {
-				//	n.logger.Error(err)
+				//	n.logger.Warn(err)
 				//
-				//	break
+				//	continue
 				//}
 			}
 		}
