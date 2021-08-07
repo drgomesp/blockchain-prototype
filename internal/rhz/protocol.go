@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/drgomesp/rhizom/pkg/p2p"
-	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/pkg/errors"
 )
 
@@ -13,11 +12,16 @@ const (
 	MsgTypeResponse
 )
 
+// protocol messages.
 const (
 	// MsgTypeGetBlocks represents a request for blocks.
 	MsgTypeGetBlocks = p2p.MsgType(ProtocolRequestBlocks)
 	// MsgTypeBlocks represents a response to a request for blocks.
 	MsgTypeBlocks = p2p.MsgType(ProtocolResponseBlocks)
+)
+
+// async messages.
+const (
 	// MsgNewBlock represents a new block.
 	MsgNewBlock = p2p.MsgType("NewBlock")
 )
@@ -40,24 +44,24 @@ type (
 )
 
 func ProtocolHandlerFunc(msgType uint, api API) p2p.StreamHandlerFunc {
-	return func(ctx context.Context, stream network.Stream) (p2p.ProtocolType, interface{}, error) {
+	return func(ctx context.Context, rw p2p.MsgReadWriter) (p2p.ProtocolType, interface{}, error) {
+		msg, err := rw.ReadMsg(ctx)
+		if err != nil {
+			return p2p.NilProtocol, nil, err
+		}
+
 		switch msgType {
 		case MsgTypeRequest:
-			return HandleRequest(ctx, api, stream)
+			return HandleRequest(ctx, api, msg)
 		case MsgTypeResponse:
-			return p2p.NilProtocol, nil, HandleResponse(ctx, api, stream)
+			return p2p.NilProtocol, nil, HandleResponse(ctx, api, msg)
 		}
 
 		return p2p.NilProtocol, nil, errors.New("not implemented")
 	}
 }
 
-func HandleRequest(ctx context.Context, api API, peer network.Stream) (p2p.ProtocolType, interface{}, error) {
-	msg := &p2p.Message{
-		Type:    p2p.MsgType(peer.Protocol()),
-		Payload: peer,
-	}
-
+func HandleRequest(ctx context.Context, api API, msg *p2p.Message) (p2p.ProtocolType, interface{}, error) {
 	if handlerFunc := requestHandlers[msg.Type]; handlerFunc != nil {
 		pid, res, err := handlerFunc(ctx, api, msg, nil)
 		if err != nil {
@@ -71,12 +75,7 @@ func HandleRequest(ctx context.Context, api API, peer network.Stream) (p2p.Proto
 }
 
 // HandleResponse ... TODO: change peer to an actual Peer pointer.
-func HandleResponse(ctx context.Context, api API, peer network.Stream) error {
-	msg := &p2p.Message{
-		Type:    p2p.MsgType(peer.Protocol()),
-		Payload: peer,
-	}
-
+func HandleResponse(ctx context.Context, api API, msg *p2p.Message) error {
 	if handlerFunc := responseHandlers[msg.Type]; handlerFunc != nil {
 		return handlerFunc(ctx, api, msg, nil)
 	}

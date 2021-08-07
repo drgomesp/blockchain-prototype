@@ -10,7 +10,7 @@ import (
 func HandleGetBlocks(ctx context.Context, backend API, msg Message, peer *Peer) (p2p.ProtocolType, MessagePacket, error) {
 	var req MsgGetBlocks
 	if err := msg.Decode(&req); err != nil {
-		return "", nil, err
+		return p2p.NilProtocol, nil, err
 	}
 
 	blocks, err := backend.GetBlocks(ctx, peer, req)
@@ -18,7 +18,7 @@ func HandleGetBlocks(ctx context.Context, backend API, msg Message, peer *Peer) 
 		return p2p.NilProtocol, nil, err
 	}
 
-	return ProtocolResponseBlocks, blocks, nil
+	return p2p.ProtocolType(MsgTypeBlocks), blocks, nil
 }
 
 // HandleBlocks handles an incoming message from a peer that responded to our request.

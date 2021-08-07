@@ -21,7 +21,7 @@ func (h *Handler) GetBlocks(ctx context.Context, peer *rhz.Peer, msg rhz.MsgGetB
 	return rhz.MsgBlocks{
 		IsUpdated: true,
 		Chain: []struct{ Header struct{ Index uint64 } }{
-			{Header: struct{ Index uint64 }{Index: 9}},
+			{Header: struct{ Index uint64 }{Index: msg.IndexNeed * 2}},
 		},
 	}, nil
 }

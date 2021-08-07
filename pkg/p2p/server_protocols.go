@@ -34,18 +34,25 @@ func (s *Server) registerProtocols(ctx context.Context) {
 
 			go s.AddPeer(ctx, p)
 
-			rpid, msg, err := handler(ctx, netStream)
+			rw := &protoRW{
+				pid:  pid,
+				host: s.host,
+				read: netStream,
+			}
+
+			rpid, msg, err := handler(ctx, rw)
 			if err != nil {
 				s.logger.Error(err)
 				return
 			}
+			rw.writePID = rpid
 
 			// early return if we are handling a response, which needs no communicating back
 			if rpid == NilProtocol {
 				return
 			}
 
-			if err = Send(ctx, s, MsgType(rpid), msg); err != nil {
+			if err = Send(ctx, rw, MsgType(rpid), msg); err != nil {
 				s.logger.Error(err)
 				return
 			}
@@ -104,8 +111,8 @@ func (s *Server) ReadMsg(ctx context.Context) (*Message, error) {
 	panic("implement me")
 }
 
-func stream(ctx context.Context, host host.Host, pid peer.ID, protocol protocol.ID, msg io.Reader) error {
-	out, err := host.NewStream(ctx, pid, protocol)
+func stream(ctx context.Context, host host.Host, pid peer.ID, protoID protocol.ID, msg io.Reader) error {
+	out, err := host.NewStream(ctx, pid, protoID)
 	if err != nil {
 		return err
 	}

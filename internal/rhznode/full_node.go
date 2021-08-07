@@ -89,7 +89,7 @@ func (n *FullNode) Start(ctx context.Context) error {
 					ctx,
 					n.p2pServer,
 					rhz.MsgTypeGetBlocks,
-					rhz.MsgGetBlocks{IndexHave: 0, IndexNeed: 3},
+					rhz.MsgGetBlocks{IndexHave: 0, IndexNeed: 5},
 				); err != nil {
 					if err != p2p.ErrNoPeersFound {
 						n.logger.Error(err)
