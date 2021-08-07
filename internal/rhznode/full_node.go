@@ -76,29 +76,24 @@ func (n *FullNode) Start(ctx context.Context) error {
 
 	n.p2pServer.RegisterProtocols(n.Protocols(n.peerExchange)...)
 
-	factor := 1
-
 	for {
 		select {
 		case <-ctx.Done():
 			return n.Stop(ctx)
 		default:
 			{
+				factor := 1
 				time.Sleep(time.Second * time.Duration(factor))
 
-				req := rhz.MsgGetBlocks{IndexHave: 0, IndexNeed: 10 * uint64(factor)}
-				if err := n.p2pServer.StreamMsg(
-					ctx,
-					rhz.ProtocolRequestBlocks,
-					req,
-				); err != nil {
-					n.logger.Warn(err)
-
-					break
-				}
-
-				factor++
-				n.logger.Debugw("request sent", "req", req)
+				//if err := n.p2pServer.StreamMsg(
+				//	ctx,
+				//	rhz.ProtocolRequestBlocks,
+				//	rhz.MsgGetBlocks{IndexHave: 0, IndexNeed: 3},
+				//); err != nil {
+				//	n.logger.Warn(err)
+				//
+				//	break
+				//}
 			}
 		}
 	}
@@ -116,21 +111,21 @@ func (n *FullNode) Name() string {
 
 func (n *FullNode) Protocols(api rhz.API) []p2p.Protocol {
 	return []p2p.Protocol{
-		{
-			ID:  rhz.ProtocolRequestBlocks,
-			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeRequest, api),
-		},
-		{
-			ID:  rhz.ProtocolResponseBlocks,
-			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeResponse, api),
-		},
-		{
-			ID:  rhz.ProtocolRequestDelegates,
-			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeRequest, api),
-		},
-		{
-			ID:  rhz.ProtocolResponseDelegates,
-			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeResponse, api),
-		},
+		//{
+		//	ID:  rhz.ProtocolRequestBlocks,
+		//	Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeRequest, api),
+		//},
+		//{
+		//	ID:  rhz.ProtocolResponseBlocks,
+		//	Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeResponse, api),
+		//},
+		//{
+		//	ID:  rhz.ProtocolRequestDelegates,
+		//	Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeRequest, api),
+		//},
+		//{
+		//	ID:  rhz.ProtocolResponseDelegates,
+		//	Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeResponse, api),
+		//},
 	}
 }

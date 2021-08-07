@@ -48,13 +48,13 @@ func (s *Server) bootstrapNetwork(ctx context.Context) {
 	}
 }
 
-func (s *Server) openStreamWithPeer(ctx context.Context, peerID peer.ID, pid protocol.ID) (*connection, *peer.AddrInfo, error) {
+func (s *Server) openStreamWithPeer(ctx context.Context, peerID peer.ID, pid protocol.ID) (network.Stream, error) {
 	str, err := s.dht.Host().NewStream(ctx, peerID, pid)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "failed to connect to bootstrap peer")
+		return nil, errors.Wrap(err, "failed to open stream with peer")
 	}
 
-	return &connection{transport: &streamTransport{stream: str}}, nil, nil
+	return str, nil
 }
 
 func (s *Server) connectPeerByAddr(ctx context.Context, addr string) (*Peer, error) {

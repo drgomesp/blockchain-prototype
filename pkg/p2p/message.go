@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 
 	"github.com/ugorji/go/codec"
 )
@@ -24,8 +25,12 @@ type Message struct {
 func (m *Message) Decode(v interface{}) error {
 	var ch codec.CborHandle
 	h := &ch
+	data, err := ioutil.ReadAll(m.Payload)
+	if err != nil {
+		return err
+	}
 
-	dec := codec.NewDecoder(m.Payload, h)
+	dec := codec.NewDecoderBytes(data, h)
 
 	return dec.Decode(&v)
 }

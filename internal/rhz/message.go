@@ -26,10 +26,10 @@ type MsgBlocks struct {
 	}
 }
 
-func (g *MsgGetBlocks) Type() p2p.MsgType {
+func (g MsgGetBlocks) Type() p2p.MsgType {
 	return MsgTypeGetBlocks
 }
 
-func (g *MsgBlocks) Type() p2p.MsgType {
+func (g MsgBlocks) Type() p2p.MsgType {
 	return MsgTypeBlocks
 }

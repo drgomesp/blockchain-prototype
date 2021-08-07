@@ -1,7 +1,10 @@
 package p2p
 
 import (
+	"bytes"
 	"context"
+	"io"
+	"io/ioutil"
 	"math/rand"
 	"reflect"
 
@@ -13,37 +16,69 @@ import (
 	"github.com/ugorji/go/codec"
 )
 
-type msgHandlerFunc func(context.Context, MsgReadWriter) error
+type streamHandlerFunc func(context.Context, network.Stream) (ProtocolType, MsgDecoder, error)
 
 func (s *Server) registerProtocols(ctx context.Context) {
-	streaming := func(protocolID protocol.ID, handler msgHandlerFunc) network.StreamHandler {
+	streamHandler := func(protocolID protocol.ID, handler streamHandlerFunc) network.StreamHandler {
 		return func(netStream network.Stream) {
 			defer func() {
 				_ = netStream.Close()
 			}()
 
 			pid := netStream.Conn().RemotePeer()
-			peerInfo := s.host.Peerstore().PeerInfo(pid)
+			// peerInfo := s.host.Peerstore().PeerInfo(pid)
 
-			p, err := s.connectPeer(ctx, &peerInfo, netStream)
+			//defer func() {
+			//	_ = out.Close()
+			//}()
+
+			//p, err := s.connectPeer(ctx, &peerInfo, netStream)
+			//if err != nil {
+			//	s.logger.Error("stream open failed", err)
+			//
+			//	return
+			//}
+
+			// p.conn.SetProtocolID(protocolID)
+			// s.AddPeer(ctx, p)
+
+			rpid, msg, err := handler(ctx, netStream)
 			if err != nil {
-				s.logger.Error("stream open failed", err)
+				s.logger.Error(err)
+				return
+			}
+
+			if rpid == NilProtocol {
+				s.logger.Debugw("request sent", "protocol", rpid, "msg", msg)
 
 				return
 			}
 
-			p.conn.SetProtocolID(protocolID)
-			s.AddPeer(ctx, p)
+			var ch codec.CborHandle
+			h := &ch
 
-			err = handler(ctx, p.conn.transport)
-			if err != nil {
-				s.logger.Error(err)
+			var data []byte
+
+			if msg, ok := msg.(*Message); ok {
+				enc := codec.NewEncoderBytes(&data, h)
+				if err := enc.Encode(msg.Payload); err != nil {
+					s.logger.Error(err)
+					return
+				}
+
+				if err := stream(ctx, s.host, pid, protocol.ID(rpid), msg.Payload); err != nil {
+					s.logger.Error(err)
+					return
+				}
+			} else {
+				panic("message type not supported")
 			}
 		}
 	}
 
 	for _, proto := range s.protocols {
-		go s.dht.Host().SetStreamHandler(protocol.ID(proto.ID), streaming(protocol.ID(proto.ID), proto.Run))
+		pid := protocol.ID(proto.ID)
+		go s.dht.Host().SetStreamHandler(pid, streamHandler(pid, proto.Run))
 	}
 }
 
@@ -76,7 +111,7 @@ func (s *Server) findPeerByTopic(topicName string) (peer.ID, error) {
 	return chosen, nil
 }
 
-func stream(ctx context.Context, host host.Host, pid peer.ID, protocol protocol.ID, msg []byte) error {
+func stream(ctx context.Context, host host.Host, pid peer.ID, protocol protocol.ID, msg io.Reader) error {
 	out, err := host.NewStream(ctx, pid, protocol)
 	if err != nil {
 		return err
@@ -86,7 +121,12 @@ func stream(ctx context.Context, host host.Host, pid peer.ID, protocol protocol.
 		_ = out.Close()
 	}()
 
-	if _, err := out.Write(msg); err != nil {
+	data, err := ioutil.ReadAll(msg)
+	if err != nil {
+		return err
+	}
+
+	if _, err := out.Write(data); err != nil {
 		return err
 	}
 
@@ -118,7 +158,7 @@ func (s *Server) StreamMsg(ctx context.Context, msgType MsgType, msg interface{}
 		return errors.Wrap(err, "message encode failed")
 	}
 
-	if err := stream(ctx, s.dht.Host(), found, protocol.ID(msgType), data); err != nil {
+	if err := stream(ctx, s.dht.Host(), found, protocol.ID(msgType), bytes.NewReader(data)); err != nil {
 		return err
 	}
 

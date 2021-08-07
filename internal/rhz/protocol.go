@@ -1,10 +1,13 @@
 package rhz
 
 import (
+	"bytes"
 	"context"
 
 	"github.com/drgomesp/rhizom/pkg/p2p"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/pkg/errors"
+	"github.com/ugorji/go/codec"
 )
 
 const (
@@ -33,50 +36,65 @@ var (
 	}
 )
 
-func ProtocolHandlerFunc(msgType uint, api API) func(ctx context.Context, rw p2p.MsgReadWriter) error {
-	return func(ctx context.Context, rw p2p.MsgReadWriter) error {
-		peer := NewPeer(rw)
-
+func ProtocolHandlerFunc(msgType uint, api API) p2p.StreamHandlerFunc {
+	return func(ctx context.Context, stream network.Stream) (p2p.ProtocolType, p2p.MsgDecoder, error) {
 		switch msgType {
 		case MsgTypeRequest:
-			return HandleRequest(ctx, api, peer)
+			return HandleRequest(ctx, api, stream)
 		case MsgTypeResponse:
-			return HandleResponse(ctx, api, peer)
+			return p2p.NilProtocol, nil, HandleResponse(ctx, api, stream)
 		}
 
-		return errors.New("message handle failed")
+		return p2p.NilProtocol, nil, errors.New("not implemented")
 	}
 }
 
 type (
-	RequestMsgHandler  func(API, Message, *Peer) (Message, error)
+	RequestMsgHandler  func(API, Message, *Peer) (p2p.ProtocolType, MessagePacket, error)
 	ResponseMsgHandler func(API, Message, *Peer) error
 )
 
-func HandleRequest(ctx context.Context, api API, peer *Peer) error {
-	msg, err := peer.rw.ReadMsg(ctx)
-	if err != nil {
-		return errors.Wrap(err, "read peer message failed")
+func HandleRequest(ctx context.Context, api API, peer network.Stream) (p2p.ProtocolType, p2p.MsgDecoder, error) {
+	msg := &p2p.Message{
+		Type:    p2p.MsgType(peer.Protocol()),
+		Payload: peer,
 	}
 
 	if handlerFunc := requestHandlers[msg.Type]; handlerFunc != nil {
-		// TODO: discard the response, but maybe should store locally
-		_, err := handlerFunc(api, msg, peer)
+		pid, res, err := handlerFunc(api, msg, nil)
+		if err != nil {
+			return p2p.NilProtocol, nil, err
+		}
 
-		return err
+		_ = res
+
+		var ch codec.CborHandle
+		h := &ch
+
+		var data []byte
+
+		enc := codec.NewEncoderBytes(&data, h)
+		if err := enc.Encode(res); err != nil {
+			return p2p.NilProtocol, nil, err
+		}
+
+		return pid, &p2p.Message{
+			Type:    p2p.MsgType(pid),
+			Payload: bytes.NewReader(data),
+		}, nil
 	}
 
-	return ErrRequestTypeNotSupported
+	return p2p.NilProtocol, nil, ErrRequestTypeNotSupported
 }
 
-func HandleResponse(ctx context.Context, api API, peer *Peer) error {
-	msg, err := peer.rw.ReadMsg(ctx)
-	if err != nil {
-		return errors.Wrap(err, "read peer message failed")
+func HandleResponse(ctx context.Context, api API, peer network.Stream) error {
+	msg := &p2p.Message{
+		Type:    p2p.MsgType(peer.Protocol()),
+		Payload: peer,
 	}
 
 	if handlerFunc := responseHandlers[msg.Type]; handlerFunc != nil {
-		return handlerFunc(api, msg, peer)
+		return handlerFunc(api, msg, nil)
 	}
 
 	return ErrResponseTypeNotSupported

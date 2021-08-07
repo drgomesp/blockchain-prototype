@@ -15,19 +15,19 @@ func NewHandler(logger *zap.SugaredLogger) *Handler {
 	}
 }
 
-func (h *Handler) GetBlocks(peer *rhz.Peer, msg *rhz.MsgGetBlocks) (*rhz.MsgBlocks, error) {
+func (h *Handler) GetBlocks(peer *rhz.Peer, msg rhz.MsgGetBlocks) (rhz.MsgBlocks, error) {
 	h.logger.Debugw("handling request", "peer", peer, "msg", msg)
 
-	return &rhz.MsgBlocks{
-		IsUpdated: false,
+	return rhz.MsgBlocks{
+		IsUpdated: true,
 		Chain: []struct{ Header struct{ Index uint64 } }{
-			{Header: struct{ Index uint64 }{Index: 99999999}},
+			{Header: struct{ Index uint64 }{Index: 123456}},
 		},
 	}, nil
 }
 
-func (h *Handler) Blocks(peer *rhz.Peer, msg *rhz.MsgBlocks) error {
-	h.logger.Debugw("handling response", "peer", peer, "msg", msg)
+func (h *Handler) Blocks(peer *rhz.Peer, msg rhz.MsgBlocks) error {
+	h.logger.Debugw("received response", "msg", msg)
 
 	return nil
 }
