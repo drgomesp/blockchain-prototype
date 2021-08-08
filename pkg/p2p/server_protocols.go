@@ -94,13 +94,21 @@ func (s *Server) findPeerByTopic(topicName string) (peer.ID, error) {
 	return chosen, nil
 }
 
-func (s *Server) WriteMsg(ctx context.Context, msg *Message) error {
-	p, err := s.findPeerByTopic(string(msg.Type))
-	if err != nil {
-		return err
+func (s *Server) WriteMsg(ctx context.Context, msg *Message) (err error) {
+	var peerFound peer.ID
+	for topicName := range s.topics {
+		if peerFound, err = s.findPeerByTopic(topicName); err != nil {
+			if err != ErrNoPeersFound {
+				return err
+			}
+		}
 	}
 
-	if err := stream(ctx, s.dht.Host(), p, protocol.ID(msg.Type), msg.Payload); err != nil {
+	if peerFound == "" {
+		return ErrNoPeersFound
+	}
+
+	if err := stream(ctx, s.dht.Host(), peerFound, protocol.ID(msg.Type), msg.Payload); err != nil {
 		return err
 	}
 

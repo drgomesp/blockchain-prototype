@@ -288,5 +288,6 @@ func (s *Server) setupConnection(
 	}
 
 	go s.AddPeer(ctx, p)
+
 	return p, nil
 }

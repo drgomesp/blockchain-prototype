@@ -91,21 +91,13 @@ func (n *FullNode) Start(ctx context.Context) error {
 					rhz.MsgTypeGetBlocks,
 					rhz.MsgGetBlocks{IndexHave: 0, IndexNeed: 5},
 				); err != nil {
-					if err != p2p.ErrNoPeersFound {
-						n.logger.Error(err)
+					if err == p2p.ErrNoPeersFound {
+						n.logger.Debug("no peers available")
+						continue
 					}
 
-					continue
+					n.logger.Error(err)
 				}
-
-				//msg, err := n.p2pServer.ReadMsg(ctx)
-				//if err != nil {
-				//	n.logger.Error(err)
-				//
-				//	continue
-				//}
-				//
-				//n.logger.Infow("msg", msg)
 
 				//if err := n.p2pServer.StreamMsg(
 				//	ctx,
@@ -157,13 +149,13 @@ func (n *FullNode) Protocols(api rhz.API) []p2p.Protocol {
 			ID:  rhz.ProtocolResponseBlocks,
 			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeResponse, api),
 		},
-		//{
-		//	ID:  rhz.ProtocolRequestDelegates,
-		//	Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeRequest, api),
-		//},
-		//{
-		//	ID:  rhz.ProtocolResponseDelegates,
-		//	Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeResponse, api),
-		//},
+		{
+			ID:  rhz.ProtocolRequestDelegates,
+			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeRequest, api),
+		},
+		{
+			ID:  rhz.ProtocolResponseDelegates,
+			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeResponse, api),
+		},
 	}
 }
