@@ -1,15 +1,12 @@
 package rhz
 
-import "github.com/drgomesp/rhizom/pkg/p2p"
+import (
+	"github.com/drgomesp/rhizom/pkg/block"
+	"github.com/drgomesp/rhizom/pkg/p2p"
+)
 
-// Message used for direct p2p communication.
-type Message interface {
-	// Decode ...
-	Decode(v interface{}) error
-}
-
-type MessagePacket interface {
-	Type() p2p.MsgType
+type MsgNewBlock struct {
+	Block block.Block
 }
 
 type MsgGetBlocks struct {

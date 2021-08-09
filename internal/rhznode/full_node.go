@@ -31,9 +31,10 @@ var topics = []string{
 }
 
 type FullNode struct {
-	node         *node.Node
-	logger       *zap.SugaredLogger
-	peerExchange rhz.API
+	node      *node.Node
+	logger    *zap.SugaredLogger
+	streaming rhz.Streaming
+	broadcast rhz.Broadcast
 
 	p2pServer *p2p.Server
 }
@@ -53,28 +54,29 @@ func NewFullNode(logger *zap.SugaredLogger) (*FullNode, error) {
 		return nil, errors.Wrap(err, "failed initialize node")
 	}
 
+	backend := NewHandler(logger)
 	fullNode := &FullNode{
-		node:         n,
-		logger:       logger,
-		p2pServer:    n.Server(),
-		peerExchange: NewHandler(logger),
+		node:      n,
+		logger:    logger,
+		p2pServer: n.Server(),
+		streaming: backend,
+		broadcast: backend,
 	}
 
 	n.RegisterAPIs(nil)
-	n.RegisterProtocols(fullNode.Protocols(fullNode.peerExchange)...)
+	n.RegisterProtocols(fullNode.Protocols(fullNode.streaming)...)
 
 	return fullNode, nil
 }
 
-func (n *FullNode) Start(ctx context.Context) error {
-	var err error
-	n.logger.Infof("starting full node")
+func (n *FullNode) Start(ctx context.Context) (err error) {
+	n.logger.Info("starting full node")
 
 	if err = n.p2pServer.Start(ctx); err != nil {
 		return errors.Wrap(err, "failed to start p2p server")
 	}
 
-	n.p2pServer.RegisterProtocols(n.Protocols(n.peerExchange)...)
+	n.p2pServer.RegisterProtocols(n.Protocols(n.streaming)...)
 
 	for {
 		select {
@@ -89,37 +91,14 @@ func (n *FullNode) Start(ctx context.Context) error {
 					ctx,
 					n.p2pServer,
 					rhz.MsgTypeGetBlocks,
-					rhz.MsgGetBlocks{IndexHave: 0, IndexNeed: 5},
+					rhz.MsgGetBlocks{IndexHave: 0, IndexNeed: 99},
 				); err != nil {
-					if err == p2p.ErrNoPeersFound {
-						n.logger.Debug("no peers available")
+					if errors.Is(err, p2p.ErrNoPeersFound) {
 						continue
 					}
 
 					n.logger.Error(err)
 				}
-
-				//if err := n.p2pServer.StreamMsg(
-				//	ctx,
-				//	rhz.ProtocolRequestBlocks,
-				//	rhz.MsgGetBlocks{IndexHave: 0, IndexNeed: 3},
-				//); err != nil {
-				//	if err != p2p.ErrNoPeersFound {
-				//		n.logger.Error(err)
-				//	}
-				//
-				//	continue
-				//}
-
-				//if err := n.p2pServer.StreamMsg(
-				//	ctx,
-				//	protocol.Ping,
-				//	"PING",
-				//); err != nil {
-				//	n.logger.Warn(err)
-				//
-				//	continue
-				//}
 			}
 		}
 	}
@@ -135,27 +114,23 @@ func (n *FullNode) Name() string {
 	return "full_node"
 }
 
-func (n *FullNode) Protocols(api rhz.API) []p2p.Protocol {
+func (n *FullNode) Protocols(streaming rhz.Streaming) []p2p.Protocol {
 	return []p2p.Protocol{
-		//{
-		//	ID:  protocol.Ping,
-		//	Run: protocol.PingHandler,
-		//},
 		{
 			ID:  rhz.ProtocolRequestBlocks,
-			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeRequest, api),
+			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeRequest, streaming),
 		},
 		{
 			ID:  rhz.ProtocolResponseBlocks,
-			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeResponse, api),
+			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeResponse, streaming),
 		},
 		{
 			ID:  rhz.ProtocolRequestDelegates,
-			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeRequest, api),
+			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeRequest, streaming),
 		},
 		{
 			ID:  rhz.ProtocolResponseDelegates,
-			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeResponse, api),
+			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeResponse, streaming),
 		},
 	}
 }

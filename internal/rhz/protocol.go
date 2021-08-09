@@ -12,7 +12,19 @@ const (
 	MsgTypeResponse
 )
 
-// protocol messages.
+// Message used for direct p2p communication.
+type Message interface {
+	// Decode ...
+	Decode(v interface{}) error
+}
+
+// MessagePacket defines the message packet type which carries the message data.
+// Protocol-specific messages must implement this interface in order to be supported.
+type MessagePacket interface {
+	Type() p2p.MsgType
+}
+
+// streaming protocol messages.
 const (
 	// MsgTypeGetBlocks represents a request for blocks.
 	MsgTypeGetBlocks = p2p.MsgType(ProtocolRequestBlocks)
@@ -20,50 +32,63 @@ const (
 	MsgTypeBlocks = p2p.MsgType(ProtocolResponseBlocks)
 )
 
-// async messages.
+// async broadcast messages.
 const (
-	// MsgNewBlock represents a new block.
-	MsgNewBlock = p2p.MsgType("NewBlock")
+	// MsgTypeNewBlock represents a new block.
+	MsgTypeNewBlock = p2p.MsgType("NewBlock")
+)
+
+// Protocol-specific errors.
+var (
+	ErrMessageHandleFailed = func(e error) error {
+		return errors.Wrap(e, "message handle failed")
+	}
+	ErrUnsupportedMessageType = func(msgType p2p.MsgType) error {
+		return errors.Wrap(
+			errors.New("unsupported message type"), string(msgType),
+		)
+	}
+	ErrRequestTypeNotSupported  = errors.New("request type not supported by protocol handler")
+	ErrResponseTypeNotSupported = errors.New("response type not supported by protocol handler")
+)
+
+type (
+	requestHandlerFunc  func(context.Context, Streaming, Message, *Peer) (p2p.ProtocolType, MessagePacket, error)
+	responseHandlerFunc func(context.Context, Streaming, Message, *Peer) error
 )
 
 var (
-	ErrRequestTypeNotSupported  = errors.New("request type not supported by protocol handler")
-	ErrResponseTypeNotSupported = errors.New("response type not supported by protocol handler")
-
-	requestHandlers = map[p2p.MsgType]RequestMsgHandler{
+	requestHandlers = map[p2p.MsgType]requestHandlerFunc{
 		MsgTypeGetBlocks: HandleGetBlocks,
 	}
-	responseHandlers = map[p2p.MsgType]ResponseMsgHandler{
+	responseHandlers = map[p2p.MsgType]responseHandlerFunc{
 		MsgTypeBlocks: HandleBlocks,
 	}
 )
 
-type (
-	RequestMsgHandler  func(context.Context, API, Message, *Peer) (p2p.ProtocolType, MessagePacket, error)
-	ResponseMsgHandler func(context.Context, API, Message, *Peer) error
-)
-
-func ProtocolHandlerFunc(msgType uint, api API) p2p.StreamHandlerFunc {
+// ProtocolHandlerFunc is the actual protocol handler implementation required by p2p.Protocol.
+func ProtocolHandlerFunc(msgType uint, streaming Streaming) p2p.StreamHandlerFunc {
 	return func(ctx context.Context, rw p2p.MsgReadWriter) (p2p.ProtocolType, interface{}, error) {
 		msg, err := rw.ReadMsg(ctx)
 		if err != nil {
-			return p2p.NilProtocol, nil, err
+			return p2p.NilProtocol, nil, errors.Wrap(err, "message read failed")
 		}
 
 		switch msgType {
 		case MsgTypeRequest:
-			return HandleRequest(ctx, api, msg)
+			return handleRequest(ctx, streaming, msg)
 		case MsgTypeResponse:
-			return p2p.NilProtocol, nil, HandleResponse(ctx, api, msg)
+			return p2p.NilProtocol, nil, handleResponse(ctx, streaming, msg)
 		}
 
-		return p2p.NilProtocol, nil, errors.New("not implemented")
+		return p2p.NilProtocol, nil, ErrUnsupportedMessageType(msg.Type)
 	}
 }
 
-func HandleRequest(ctx context.Context, api API, msg *p2p.Message) (p2p.ProtocolType, interface{}, error) {
+// handleRequest handles request type messages.
+func handleRequest(ctx context.Context, streaming Streaming, msg *p2p.Message) (p2p.ProtocolType, interface{}, error) {
 	if handlerFunc := requestHandlers[msg.Type]; handlerFunc != nil {
-		pid, res, err := handlerFunc(ctx, api, msg, nil)
+		pid, res, err := handlerFunc(ctx, streaming, msg, nil)
 		if err != nil {
 			return p2p.NilProtocol, nil, err
 		}
@@ -74,10 +99,10 @@ func HandleRequest(ctx context.Context, api API, msg *p2p.Message) (p2p.Protocol
 	return p2p.NilProtocol, nil, ErrRequestTypeNotSupported
 }
 
-// HandleResponse ... TODO: change peer to an actual Peer pointer.
-func HandleResponse(ctx context.Context, api API, msg *p2p.Message) error {
+// handleResponse handles response type messages.
+func handleResponse(ctx context.Context, streaming Streaming, msg *p2p.Message) error {
 	if handlerFunc := responseHandlers[msg.Type]; handlerFunc != nil {
-		return handlerFunc(ctx, api, msg, nil)
+		return handlerFunc(ctx, streaming, msg, nil)
 	}
 
 	return ErrResponseTypeNotSupported

@@ -31,3 +31,9 @@ func (h *Handler) Blocks(ctx context.Context, peer *rhz.Peer, msg rhz.MsgBlocks)
 
 	return nil
 }
+
+func (h *Handler) OnNewBlock(ctx context.Context, block *rhz.Block) error {
+	h.logger.Infow("OnNewBlock", "block", block)
+
+	return nil
+}

@@ -128,6 +128,7 @@ func (s *Server) setupLocalHost(ctx context.Context) error {
 		),
 		p2p.ListenAddrStrings(
 			"/ip4/0.0.0.0/tcp/0",
+			"/ip4/0.0.0.0/tcp/0/ws", // WebSocker address
 		),
 		p2p.ChainOptions(
 			p2p.Muxer("/yamux/1.0.0", yamux.DefaultTransport),
