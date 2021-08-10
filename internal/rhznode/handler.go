@@ -17,7 +17,7 @@ func NewHandler(logger *zap.SugaredLogger) *Handler {
 	}
 }
 
-func (h *Handler) GetBlocks(ctx context.Context, peer *rhz.Peer, msg rhz.MsgGetBlocks) (rhz.MsgBlocks, error) {
+func (h *Handler) GetBlocks(ctx context.Context, peering rhz.Peering, msg rhz.MsgGetBlocks) (rhz.MsgBlocks, error) {
 	return rhz.MsgBlocks{
 		IsUpdated: true,
 		Chain: []struct{ Header struct{ Index uint64 } }{
@@ -26,14 +26,14 @@ func (h *Handler) GetBlocks(ctx context.Context, peer *rhz.Peer, msg rhz.MsgGetB
 	}, nil
 }
 
-func (h *Handler) Blocks(ctx context.Context, peer *rhz.Peer, msg rhz.MsgBlocks) error {
+func (h *Handler) Blocks(ctx context.Context, peering rhz.Peering, msg rhz.MsgBlocks) error {
 	h.logger.Infow("", "response", msg)
 
 	return nil
 }
 
-func (h *Handler) OnNewBlock(ctx context.Context, block *rhz.Block) error {
-	h.logger.Infow("OnNewBlock", "block", block)
+func (h *Handler) OnNewBlock(ctx context.Context, msg rhz.MsgNewBlock) error {
+	h.logger.Infow("OnNewBlock", "msg", msg)
 
 	return nil
 }

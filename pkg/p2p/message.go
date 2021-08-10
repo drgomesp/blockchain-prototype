@@ -7,13 +7,14 @@ import (
 	"io"
 	"io/ioutil"
 
+	"github.com/pkg/errors"
 	"github.com/ugorji/go/codec"
 )
 
-type MessageHandler func(req MsgDecoder) (res MsgDecoder, err error)
-
+// MsgType defines a type identifier for messages.
 type MsgType string
 
+// MsgDecoder defines something that can be decoded into any value.
 type MsgDecoder interface {
 	Decode(v interface{}) error
 }
@@ -34,8 +35,7 @@ type MsgReadWriter interface {
 	MsgReader
 }
 
-var NilMessage = Message{}
-
+// Message represents an encoded message that can be exchanged in the network.
 type Message struct {
 	Type    MsgType
 	Payload io.Reader
@@ -48,16 +48,21 @@ func (m Message) String() string {
 func (m *Message) Decode(v interface{}) error {
 	var ch codec.CborHandle
 	h := &ch
+
 	data, err := ioutil.ReadAll(m.Payload)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "message payload read failed")
 	}
 
 	dec := codec.NewDecoderBytes(data, h)
+	if err = dec.Decode(&v); err != nil {
+		return errors.Wrap(err, "message decode failed")
+	}
 
-	return dec.Decode(&v)
+	return nil
 }
 
+// Send an encoded message through the read/writer pipe.
 func Send(ctx context.Context, rw MsgReadWriter, t MsgType, payload interface{}) error {
 	var ch codec.CborHandle
 	h := &ch
@@ -66,11 +71,15 @@ func Send(ctx context.Context, rw MsgReadWriter, t MsgType, payload interface{})
 	enc := codec.NewEncoderBytes(&data, h)
 
 	if err := enc.Encode(payload); err != nil {
-		return err
+		return errors.Wrap(err, "message encode failed")
 	}
 
-	return rw.WriteMsg(ctx, &Message{
+	if err := rw.WriteMsg(ctx, &Message{
 		Type:    t,
 		Payload: bytes.NewReader(data),
-	})
+	}); err != nil {
+		return errors.Wrap(err, "message write failed")
+	}
+
+	return nil
 }

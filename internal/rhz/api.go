@@ -4,16 +4,16 @@ import (
 	"context"
 )
 
-// Streaming defines the bi-directional protocol messages that can be exchanged by peers.
-type Streaming interface {
+// Peering defines the bi-directional protocol messages that can be exchanged by peers.
+type Peering interface {
 	// GetBlocks requests the peer for some blocks.
-	GetBlocks(context.Context, *Peer, MsgGetBlocks) (MsgBlocks, error)
+	GetBlocks(context.Context, Peering, MsgGetBlocks) (MsgBlocks, error)
 	// Blocks receives blocks from the peer.
-	Blocks(context.Context, *Peer, MsgBlocks) error
+	Blocks(context.Context, Peering, MsgBlocks) error
 }
 
 // Broadcast defines the network messages that a peer can send and receive.
 type Broadcast interface {
 	// OnNewBlock is the listener for new block messages.
-	OnNewBlock(context.Context, *Block) error
+	OnNewBlock(context.Context, MsgNewBlock) error
 }

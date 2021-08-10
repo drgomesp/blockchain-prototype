@@ -8,7 +8,7 @@ import (
 )
 
 // HandleGetBlocks handles an incoming request for blocks message.
-func HandleGetBlocks(ctx context.Context, backend Streaming, msg Message, peer *Peer) (
+func HandleGetBlocks(ctx context.Context, peering Peering, msg Message) (
 	p2p.ProtocolType, MessagePacket, error,
 ) {
 	var req MsgGetBlocks
@@ -16,7 +16,7 @@ func HandleGetBlocks(ctx context.Context, backend Streaming, msg Message, peer *
 		return p2p.NilProtocol, nil, errors.Wrap(err, "message decode failed")
 	}
 
-	blocks, err := backend.GetBlocks(ctx, peer, req)
+	blocks, err := peering.GetBlocks(ctx, peering, req)
 	if err != nil {
 		return p2p.NilProtocol, nil, ErrMessageHandleFailed(err)
 	}
@@ -25,13 +25,13 @@ func HandleGetBlocks(ctx context.Context, backend Streaming, msg Message, peer *
 }
 
 // HandleBlocks handles an incoming blocks response.
-func HandleBlocks(ctx context.Context, backend Streaming, msg Message, peer *Peer) error {
+func HandleBlocks(ctx context.Context, peering Peering, msg Message) error {
 	var res MsgBlocks
 	if err := msg.Decode(&res); err != nil {
 		return err
 	}
 
-	if err := backend.Blocks(ctx, peer, res); err != nil {
+	if err := peering.Blocks(ctx, peering, res); err != nil {
 		return ErrMessageHandleFailed(err)
 	}
 

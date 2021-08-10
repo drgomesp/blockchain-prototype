@@ -34,14 +34,14 @@ const ServerName = "p2p"
 // Server manages a p2p network.
 type Server struct {
 	// Dependencies
-	cfg       Config             // cfg server options.
-	logger    *zap.SugaredLogger // logger provided logger.
-	protocols []Protocol         // protocols supported by the server.
-	host      host.Host          // host is the actual p2p node within the network.
-	dht       *kaddht.IpfsDHT    // dht discovery service.
-	pubSub    *pubsub.PubSub     // pubSub is a p2p publish/subscribe service.
-	topics    map[string]*pubsub.Topic
-	peer      *Peer // Peer is the local p2p peer.
+	cfg       Config                   // cfg server options.
+	logger    *zap.SugaredLogger       // logger provided logger.
+	protocols []Protocol               // protocols supported by the server.
+	host      host.Host                // host is the actual p2p node within the network.
+	dht       *kaddht.IpfsDHT          // dht discovery service.
+	pubSub    *pubsub.PubSub           // pubSub is a p2p publish/subscribe service.
+	topics    map[string]*pubsub.Topic // topics of that the server is subscribed to.
+	peer      *Peer                    // Peer is the local p2p peer.
 
 	// Control flags and channels
 	running         bool              // running controls the run loop.

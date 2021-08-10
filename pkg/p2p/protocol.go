@@ -9,12 +9,15 @@ import (
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/pkg/errors"
 )
 
+// ProtocolType defines the type for a user-defined sub-protocol.
 type ProtocolType string
 
 var NilProtocol = ProtocolType("")
 
+// StreamHandlerFunc defines the sub-protocol handler function to handle incoming or outgoing messages.
 type StreamHandlerFunc func(context.Context, MsgReadWriter) (ProtocolType, interface{}, error)
 
 // Protocol defines a sub-protocol for communication in the network.
@@ -22,10 +25,11 @@ type Protocol struct {
 	// ID is the unique identifier of the protocol (three-letter word).
 	ID string
 
-	// Run ...
+	// Run is called in a separate go routine for every p2p stream connection opened.
 	Run StreamHandlerFunc
 }
 
+// protoRW is a read/write pipe used internally for protocol messaging.
 type protoRW struct {
 	pid      peer.ID
 	host     host.Host
@@ -34,6 +38,7 @@ type protoRW struct {
 	writePID ProtocolType
 }
 
+// ReadMsg ...
 func (p *protoRW) ReadMsg(ctx context.Context) (*Message, error) {
 	data, err := ioutil.ReadAll(p.read)
 	if err != nil {
@@ -46,6 +51,7 @@ func (p *protoRW) ReadMsg(ctx context.Context) (*Message, error) {
 	}, nil
 }
 
+// WriteMsg ...
 func (p *protoRW) WriteMsg(ctx context.Context, msg *Message) error {
 	out, err := p.host.NewStream(ctx, p.pid, protocol.ID(msg.Type))
 	if err != nil {
@@ -62,7 +68,7 @@ func (p *protoRW) WriteMsg(ctx context.Context, msg *Message) error {
 	}
 
 	if _, err := out.Write(data); err != nil {
-		return err
+		return errors.Wrap(err, "message write failed")
 	}
 
 	p.write = out

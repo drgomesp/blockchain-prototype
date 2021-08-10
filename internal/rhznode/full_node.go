@@ -11,6 +11,9 @@ import (
 	"go.uber.org/zap"
 )
 
+// serviceTag is an identifier for the discovery service.
+const serviceTag = "rhizom"
+
 var bootstrapAddrs = []string{
 	"/dns4/bootstrapper-1.rhz.network/tcp/4001/ipfs/Qmf8Lt1FiQnG7tLrQbhwvUXzBMYsj6KicNdKiD1F2rSRW5",
 	"/dns4/bootstrapper-2.rhz.network/tcp/4001/ipfs/QmcRoi1mQ7eb7xPDhWZjGL8rivAUHwCv1FMiLw7FGSZvFL",
@@ -30,12 +33,12 @@ var topics = []string{
 	rhz.ProtocolResponseBlocks,
 }
 
+// FullNode implements a full node type in the Rhizom network.
 type FullNode struct {
 	node      *node.Node
 	logger    *zap.SugaredLogger
-	streaming rhz.Streaming
+	peering   rhz.Peering
 	broadcast rhz.Broadcast
-
 	p2pServer *p2p.Server
 }
 
@@ -44,6 +47,7 @@ func NewFullNode(logger *zap.SugaredLogger) (*FullNode, error) {
 		Type: node.TypeFull,
 		Name: "rhz_node",
 		P2P: p2p.Config{
+			ServiceTag:     serviceTag,
 			MaxPeers:       p2pServerMaxPeers,
 			PingTimeout:    p2pServerPingTimeout,
 			BootstrapAddrs: bootstrapAddrs,
@@ -55,16 +59,17 @@ func NewFullNode(logger *zap.SugaredLogger) (*FullNode, error) {
 	}
 
 	backend := NewHandler(logger)
+
 	fullNode := &FullNode{
 		node:      n,
 		logger:    logger,
 		p2pServer: n.Server(),
-		streaming: backend,
+		peering:   backend,
 		broadcast: backend,
 	}
 
 	n.RegisterAPIs(nil)
-	n.RegisterProtocols(fullNode.Protocols(fullNode.streaming)...)
+	n.RegisterProtocols(fullNode.Protocols(fullNode.peering)...)
 
 	return fullNode, nil
 }
@@ -76,7 +81,7 @@ func (n *FullNode) Start(ctx context.Context) (err error) {
 		return errors.Wrap(err, "failed to start p2p server")
 	}
 
-	n.p2pServer.RegisterProtocols(n.Protocols(n.streaming)...)
+	n.p2pServer.RegisterProtocols(n.Protocols(n.peering)...)
 
 	for {
 		select {
@@ -84,14 +89,14 @@ func (n *FullNode) Start(ctx context.Context) (err error) {
 			return n.Stop(ctx)
 		default:
 			{
-				factor := 1
+				factor := 5
 				time.Sleep(time.Second * time.Duration(factor))
 
 				if err := p2p.Send(
 					ctx,
 					n.p2pServer,
 					rhz.MsgTypeGetBlocks,
-					rhz.MsgGetBlocks{IndexHave: 0, IndexNeed: 99},
+					rhz.MsgGetBlocks{IndexHave: 0, IndexNeed: 1000},
 				); err != nil {
 					if errors.Is(err, p2p.ErrNoPeersFound) {
 						continue
@@ -114,23 +119,23 @@ func (n *FullNode) Name() string {
 	return "full_node"
 }
 
-func (n *FullNode) Protocols(streaming rhz.Streaming) []p2p.Protocol {
+func (n *FullNode) Protocols(backend rhz.Peering) []p2p.Protocol {
 	return []p2p.Protocol{
 		{
 			ID:  rhz.ProtocolRequestBlocks,
-			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeRequest, streaming),
+			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeRequest, backend),
 		},
 		{
 			ID:  rhz.ProtocolResponseBlocks,
-			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeResponse, streaming),
+			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeResponse, backend),
 		},
 		{
 			ID:  rhz.ProtocolRequestDelegates,
-			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeRequest, streaming),
+			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeRequest, backend),
 		},
 		{
 			ID:  rhz.ProtocolResponseDelegates,
-			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeResponse, streaming),
+			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeResponse, backend),
 		},
 	}
 }

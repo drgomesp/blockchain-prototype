@@ -9,9 +9,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// serviceTag is an identifier for the discovery service.
-const serviceTag = "rhizom"
-
 // HandlePeerFound receives a discovered peer.
 func (s *Server) HandlePeerFound(peerInfo peer.AddrInfo) {
 	p, err := NewPeer(&peerInfo, s.pubSub)
@@ -26,7 +23,7 @@ func (s *Server) HandlePeerFound(peerInfo peer.AddrInfo) {
 
 // setupDiscovery sets up the peer discovery mechanism.
 func (s *Server) setupDiscovery(ctx context.Context) error {
-	disc, err := discovery.NewMdnsService(ctx, s.host, time.Second, serviceTag)
+	disc, err := discovery.NewMdnsService(ctx, s.host, time.Second, s.cfg.ServiceTag)
 	if err != nil {
 		return errors.Wrap(err, "failed to initialize disc")
 	}

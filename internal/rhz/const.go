@@ -5,7 +5,7 @@ const (
 	local   = "drgomesp"
 	devNet  = "default_55fd187b-b29e-4856-81fc-ba1e7bc18287"
 	testNet = "rhz_testnet_e19d2c16-8c39-4f0f-8c88-2427e37c12bb"
-	net     = devNet
+	net     = testNet
 
 	TopicBlocks       = rhz + "blk/" + net
 	TopicProducers    = rhz + "prc/" + net

@@ -2,7 +2,7 @@ package node
 
 import "context"
 
-// Service defines a service that can be registered as part of the node lifecycle.
+// Service defines a service that can be managed by the node as part of its lifecycle.
 type Service interface {
 	// Name of the service.
 	Name() string
