@@ -24,28 +24,19 @@ const (
 	p2pServerPingTimeout = time.Second * 5
 )
 
-var topics = []string{
-	rhz.TopicBlocks,
-	rhz.TopicProducers,
-	rhz.TopicTransactions,
-	rhz.TopicRequestSync,
-	rhz.ProtocolRequestBlocks,
-	rhz.ProtocolResponseBlocks,
-}
-
 // FullNode implements a full node type in the Rhizom network.
 type FullNode struct {
-	node      *node.Node
+	*node.Node
 	logger    *zap.SugaredLogger
 	peering   rhz.Peering
 	broadcast rhz.Broadcast
 	p2pServer *p2p.Server
 }
 
-func NewFullNode(logger *zap.SugaredLogger) (*FullNode, error) {
+func NewFullNode(logger *zap.SugaredLogger, topics []string) (*node.Node, error) {
 	n, err := node.New(node.Config{
 		Type: node.TypeFull,
-		Name: "rhz_node",
+		Name: "full_node",
 		P2P: p2p.Config{
 			ServiceTag:     serviceTag,
 			MaxPeers:       p2pServerMaxPeers,
@@ -61,7 +52,6 @@ func NewFullNode(logger *zap.SugaredLogger) (*FullNode, error) {
 	backend := NewHandler(logger)
 
 	fullNode := &FullNode{
-		node:      n,
 		logger:    logger,
 		p2pServer: n.Server(),
 		peering:   backend,
@@ -70,18 +60,13 @@ func NewFullNode(logger *zap.SugaredLogger) (*FullNode, error) {
 
 	n.RegisterAPIs(nil)
 	n.RegisterProtocols(fullNode.Protocols(fullNode.peering)...)
+	n.RegisterServices(fullNode)
 
-	return fullNode, nil
+	return n, nil
 }
 
 func (n *FullNode) Start(ctx context.Context) (err error) {
 	n.logger.Info("starting full node")
-
-	if err = n.p2pServer.Start(ctx); err != nil {
-		return errors.Wrap(err, "failed to start p2p server")
-	}
-
-	n.p2pServer.RegisterProtocols(n.Protocols(n.peering)...)
 
 	for {
 		select {
@@ -90,13 +75,12 @@ func (n *FullNode) Start(ctx context.Context) (err error) {
 		default:
 			{
 				factor := 5
-				time.Sleep(time.Second * time.Duration(factor))
 
 				if err := p2p.Send(
 					ctx,
 					n.p2pServer,
 					rhz.MsgTypeGetBlocks,
-					rhz.MsgGetBlocks{IndexHave: 0, IndexNeed: 1000},
+					rhz.MsgGetBlocks{IndexHave: 0, IndexNeed: 99},
 				); err != nil {
 					if errors.Is(err, p2p.ErrNoPeersFound) {
 						continue
@@ -104,6 +88,8 @@ func (n *FullNode) Start(ctx context.Context) (err error) {
 
 					n.logger.Error(err)
 				}
+
+				time.Sleep(time.Second * time.Duration(factor))
 			}
 		}
 	}

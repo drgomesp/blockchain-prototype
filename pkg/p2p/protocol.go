@@ -3,10 +3,10 @@ package p2p
 import (
 	"bytes"
 	"context"
+	"io"
 	"io/ioutil"
 
 	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/pkg/errors"
@@ -31,11 +31,11 @@ type Protocol struct {
 
 // protoRW is a read/write pipe used internally for protocol messaging.
 type protoRW struct {
-	pid      peer.ID
-	host     host.Host
-	read     network.Stream
-	write    network.Stream
-	writePID ProtocolType
+	pid                         peer.ID
+	host                        host.Host
+	readProtocol, writeProtocol ProtocolType
+	read                        io.Reader
+	write                       io.Writer
 }
 
 // ReadMsg ...
@@ -46,7 +46,7 @@ func (p *protoRW) ReadMsg(ctx context.Context) (*Message, error) {
 	}
 
 	return &Message{
-		Type:    MsgType(p.read.Protocol()),
+		Type:    MsgType(p.readProtocol),
 		Payload: bytes.NewReader(data),
 	}, nil
 }

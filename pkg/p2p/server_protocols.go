@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"bufio"
 	"context"
 	"io"
 	"io/ioutil"
@@ -16,7 +17,7 @@ import (
 var ErrNoPeersFound = errors.New("no peers found")
 
 func (s *Server) registerProtocols(ctx context.Context) {
-	streamHandler := func(_ protocol.ID, handler StreamHandlerFunc) network.StreamHandler {
+	streamHandler := func(protocolID protocol.ID, handler StreamHandlerFunc) network.StreamHandler {
 		return func(netStream network.Stream) {
 			defer func() {
 				_ = netStream.Close()
@@ -35,9 +36,11 @@ func (s *Server) registerProtocols(ctx context.Context) {
 			go s.AddPeer(ctx, p)
 
 			rw := &protoRW{
-				pid:  pid,
-				host: s.host,
-				read: netStream,
+				pid:          pid,
+				host:         s.host,
+				readProtocol: ProtocolType(protocolID),
+				read:         bufio.NewReader(netStream),
+				write:        bufio.NewWriter(netStream),
 			}
 
 			rpid, msg, err := handler(ctx, rw)
@@ -47,7 +50,7 @@ func (s *Server) registerProtocols(ctx context.Context) {
 				return
 			}
 
-			rw.writePID = rpid
+			rw.writeProtocol = rpid
 
 			// early return if we are handling a response, which needs no communicating back
 			if rpid == NilProtocol {

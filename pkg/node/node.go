@@ -1,6 +1,8 @@
 package node
 
 import (
+	"context"
+
 	"github.com/drgomesp/rhizom/pkg/p2p"
 	"github.com/drgomesp/rhizom/pkg/rpc"
 	"github.com/pkg/errors"
@@ -60,4 +62,28 @@ func (n *Node) Services() []Service {
 
 func (n *Node) Server() *p2p.Server {
 	return n.server
+}
+
+func (n *Node) Name() string {
+	panic("implement me")
+}
+
+func (n *Node) Start(ctx context.Context) error {
+	if err := n.server.Start(ctx); err != nil {
+		return errors.Wrap(err, "failed to start server")
+	}
+
+	n.server.RegisterProtocols(n.protocols...)
+
+	for _, service := range n.services {
+		if err := service.Start(ctx); err != nil {
+			return errors.Wrap(err, "failed to start service")
+		}
+	}
+
+	return nil
+}
+
+func (n *Node) Stop(ctx context.Context) error {
+	panic("implement me")
 }
