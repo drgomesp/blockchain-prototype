@@ -39,9 +39,9 @@ func (p *pingPongService) Protocols() []p2p.Protocol {
 	return []p2p.Protocol{
 		{
 			ID: "ping-pong",
-			RunSync: func(peer *p2p.Peer) error {
-				panic("implement me")
-			},
+			// RunSync: func(peer *p2p.Peer) error {
+			// 	panic("implement me")
+			// },
 		},
 	}
 }

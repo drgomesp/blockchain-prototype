@@ -4,29 +4,29 @@ import (
 	"google.golang.org/grpc"
 )
 
-// Server type uses the gRPC and the generated resources from protobuff
+// API type uses the gRPC and the generated resources from protobuff
 // to receive requests and communicate through the internet.
-type Server struct {
+type API struct {
 	name string
 	grpc *grpc.Server
 }
 
-// NewServer instantiates a new Server object.
-func NewServer(name string, grcpServer *grpc.Server) *Server {
-	return &Server{
+// NewServer instantiates a new API object.
+func NewServer(name string, grcpServer *grpc.Server) *API {
+	return &API{
 		name: name,
 		grpc: grcpServer,
 	}
 }
 
 // Name of this server instance.
-func (s *Server) Name() string { return s.name }
+func (s *API) Name() string { return s.name }
 
 // Start this server instance.
-func (s *Server) Start(listener Listener) error { return s.grpc.Serve(listener) }
+func (s *API) Start(listener Listener) error { return s.grpc.Serve(listener) }
 
 // Info about this server instance.
-func (s *Server) Info() map[string]grpc.ServiceInfo { return s.grpc.GetServiceInfo() }
+func (s *API) Info() map[string]grpc.ServiceInfo { return s.grpc.GetServiceInfo() }
 
 // Stop this server open connections.
-func (s *Server) Stop() { s.grpc.Stop() }
+func (s *API) Stop() { s.grpc.Stop() }
