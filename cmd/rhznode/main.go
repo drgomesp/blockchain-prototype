@@ -8,7 +8,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/drgomesp/rhizom/internal/rhz"
 	"github.com/drgomesp/rhizom/internal/rhznode"
 	"github.com/drgomesp/rhizom/pkg/node"
 	"github.com/pkg/errors"
@@ -64,14 +63,7 @@ func makeFullNode(ctx context.Context) (*node.Node, error) {
 
 	var fullNode *node.Node
 
-	if fullNode, err = rhznode.NewFullNode(logger.Sugar(), []string{
-		rhz.TopicBlocks,
-		rhz.TopicProducers,
-		rhz.TopicTransactions,
-		rhz.TopicRequestSync,
-		rhz.ProtocolRequestBlocks,
-		rhz.ProtocolResponseBlocks,
-	}); err != nil {
+	if fullNode, err = rhznode.NewFullNode(logger.Sugar()); err != nil {
 		return nil, errors.Wrap(err, "failed to initialize full node")
 	}
 

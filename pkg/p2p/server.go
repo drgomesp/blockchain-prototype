@@ -263,7 +263,7 @@ func (s *Server) setupProtocolConnection(
 	stream network.Stream,
 ) (*Peer, error) {
 	s.logger.Debugw(
-		"setting up protocol connection",
+		"protocol negotiated",
 		"protocol", stream.Protocol(), "peer", peerInfo.ID.ShortString(),
 	)
 

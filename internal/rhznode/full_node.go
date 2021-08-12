@@ -4,7 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/drgomesp/rhizom/internal/rhz"
+	"github.com/drgomesp/rhizom/internal"
+	"github.com/drgomesp/rhizom/internal/protocol/rhz"
 	"github.com/drgomesp/rhizom/pkg/node"
 	"github.com/drgomesp/rhizom/pkg/p2p"
 	"github.com/pkg/errors"
@@ -20,11 +21,16 @@ var bootstrapAddrs = []string{
 }
 
 const (
+	TopicBlocks       = "/rhz/blk/" + internal.NetworkName
+	TopicProducers    = "/rhz/prc/" + internal.NetworkName
+	TopicTransactions = "/rhz/tx/" + internal.NetworkName
+	TopicRequestSync  = "/rhz/blkchain/req/" + internal.NetworkName
+
 	p2pServerMaxPeers    = 5
 	p2pServerPingTimeout = time.Second * 5
 )
 
-// FullNode implements a full node type in the Rhizom network.
+// FullNode implements a full node type in the Rhizom NetworkName.
 type FullNode struct {
 	*node.Node
 	logger    *zap.SugaredLogger
@@ -33,16 +39,22 @@ type FullNode struct {
 	p2pServer *p2p.Server
 }
 
-func NewFullNode(logger *zap.SugaredLogger, topics []string) (*node.Node, error) {
+func NewFullNode(logger *zap.SugaredLogger) (*node.Node, error) {
 	n, err := node.New(node.Config{
 		Type: node.TypeFull,
 		Name: "full_node",
 		P2P: p2p.Config{
+			NetworkName:    internal.NetworkName,
 			ServiceTag:     serviceTag,
 			MaxPeers:       p2pServerMaxPeers,
 			PingTimeout:    p2pServerPingTimeout,
 			BootstrapAddrs: bootstrapAddrs,
-			Topics:         topics,
+			Topics: []string{
+				TopicBlocks,
+				TopicProducers,
+				TopicTransactions,
+				TopicRequestSync,
+			},
 		},
 	}, node.WithLogger(logger))
 	if err != nil {
@@ -76,17 +88,18 @@ func (n *FullNode) Start(ctx context.Context) (err error) {
 			{
 				factor := 5
 
+				p := rhz.MsgTypeGetBlocks
 				if err := p2p.Send(
 					ctx,
 					n.p2pServer,
-					rhz.MsgTypeGetBlocks,
-					rhz.MsgGetBlocks{IndexHave: 0, IndexNeed: 99},
+					p,
+					rhz.MsgGetBlocks{IndexHave: 0, IndexNeed: 5},
 				); err != nil {
 					if errors.Is(err, p2p.ErrNoPeersFound) {
 						continue
 					}
 
-					n.logger.Error(err)
+					n.logger.Errorw(err.Error(), "protocol", p)
 				}
 
 				time.Sleep(time.Second * time.Duration(factor))
@@ -108,19 +121,11 @@ func (n *FullNode) Name() string {
 func (n *FullNode) Protocols(backend rhz.Peering) []p2p.Protocol {
 	return []p2p.Protocol{
 		{
-			ID:  rhz.ProtocolRequestBlocks,
+			ID:  string(rhz.MsgTypeGetBlocks),
 			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeRequest, backend),
 		},
 		{
-			ID:  rhz.ProtocolResponseBlocks,
-			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeResponse, backend),
-		},
-		{
-			ID:  rhz.ProtocolRequestDelegates,
-			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeRequest, backend),
-		},
-		{
-			ID:  rhz.ProtocolResponseDelegates,
+			ID:  string(rhz.MsgTypeBlocks),
 			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeResponse, backend),
 		},
 	}

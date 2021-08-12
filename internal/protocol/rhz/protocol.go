@@ -2,7 +2,10 @@ package rhz
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
+	"github.com/drgomesp/rhizom/internal"
 	"github.com/drgomesp/rhizom/pkg/p2p"
 	"github.com/pkg/errors"
 )
@@ -10,24 +13,6 @@ import (
 const (
 	MsgTypeRequest = iota
 	MsgTypeResponse
-)
-
-const (
-	rhz     = "/rhz/"
-	local   = "drgomesp"
-	devNet  = "default_55fd187b-b29e-4856-81fc-ba1e7bc18287"
-	testNet = "rhz_testnet_e19d2c16-8c39-4f0f-8c88-2427e37c12bb"
-	net     = testNet
-
-	TopicBlocks       = rhz + "blk/" + net
-	TopicProducers    = rhz + "prc/" + net
-	TopicTransactions = rhz + "tx/" + net
-	TopicRequestSync  = rhz + "blkchain/req/" + net
-
-	ProtocolRequestBlocks     = rhz + "blocks/req/" + net
-	ProtocolResponseBlocks    = rhz + "blocks/resp/" + net
-	ProtocolRequestDelegates  = rhz + "delegates/req/" + net
-	ProtocolResponseDelegates = rhz + "delegates/resp/" + net
 )
 
 // Message used for direct p2p communication.
@@ -45,9 +30,9 @@ type MessagePacket interface {
 // Request/response messages.
 const (
 	// MsgTypeGetBlocks represents a request for blocks.
-	MsgTypeGetBlocks = p2p.MsgType(ProtocolRequestBlocks)
+	MsgTypeGetBlocks = p2p.MsgType("/rhz/blocks/req/")
 	// MsgTypeBlocks represents a response to a request for blocks.
-	MsgTypeBlocks = p2p.MsgType(ProtocolResponseBlocks)
+	MsgTypeBlocks = p2p.MsgType("/rhz/blocks/resp/")
 )
 
 // Async broadcast messages.
@@ -66,8 +51,12 @@ var (
 			errors.New("unsupported message type"), string(msgType),
 		)
 	}
-	ErrRequestTypeNotSupported  = errors.New("request type not supported by protocol handler")
-	ErrResponseTypeNotSupported = errors.New("response type not supported by protocol handler")
+	ErrRequestTypeNotSupported = func(t p2p.MsgType) error {
+		return fmt.Errorf("request type not '%s' supported by protocol handler", t)
+	}
+	ErrResponseTypeNotSupported = func(t p2p.MsgType) error {
+		return fmt.Errorf("response type '%s' not supported by protocol handler", t)
+	}
 )
 
 type (
@@ -96,6 +85,8 @@ func ProtocolHandlerFunc(msgType uint, peering Peering) p2p.StreamHandlerFunc {
 			return p2p.NilProtocol, nil, errors.Wrap(err, "message read failed")
 		}
 
+		msg.Type = p2p.MsgType(strings.TrimSuffix(string(msg.Type), internal.NetworkName))
+
 		switch msgType {
 		case MsgTypeRequest:
 			return handleRequest(ctx, peering, msg)
@@ -118,7 +109,7 @@ func handleRequest(ctx context.Context, peering Peering, msg *p2p.Message) (p2p.
 		return pid, res, nil
 	}
 
-	return p2p.NilProtocol, nil, ErrRequestTypeNotSupported
+	return p2p.NilProtocol, nil, ErrRequestTypeNotSupported(msg.Type)
 }
 
 // handleResponse handles response type messages.
@@ -127,5 +118,5 @@ func handleResponse(ctx context.Context, peering Peering, msg *p2p.Message) erro
 		return handlerFunc(ctx, peering, msg)
 	}
 
-	return ErrResponseTypeNotSupported
+	return ErrResponseTypeNotSupported(msg.Type)
 }

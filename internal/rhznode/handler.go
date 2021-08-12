@@ -3,7 +3,7 @@ package rhznode
 import (
 	"context"
 
-	"github.com/drgomesp/rhizom/internal/rhz"
+	rhz2 "github.com/drgomesp/rhizom/internal/protocol/rhz"
 	"go.uber.org/zap"
 )
 
@@ -17,8 +17,8 @@ func NewHandler(logger *zap.SugaredLogger) *Handler {
 	}
 }
 
-func (h *Handler) GetBlocks(ctx context.Context, peering rhz.Peering, msg rhz.MsgGetBlocks) (rhz.MsgBlocks, error) {
-	return rhz.MsgBlocks{
+func (h *Handler) GetBlocks(ctx context.Context, peering rhz2.Peering, msg rhz2.MsgGetBlocks) (rhz2.MsgBlocks, error) {
+	return rhz2.MsgBlocks{
 		IsUpdated: true,
 		Chain: []struct{ Header struct{ Index uint64 } }{
 			{Header: struct{ Index uint64 }{Index: msg.IndexNeed * 2}},
@@ -26,13 +26,13 @@ func (h *Handler) GetBlocks(ctx context.Context, peering rhz.Peering, msg rhz.Ms
 	}, nil
 }
 
-func (h *Handler) Blocks(ctx context.Context, peering rhz.Peering, msg rhz.MsgBlocks) error {
+func (h *Handler) Blocks(ctx context.Context, peering rhz2.Peering, msg rhz2.MsgBlocks) error {
 	h.logger.Infow("", "response", msg)
 
 	return nil
 }
 
-func (h *Handler) OnNewBlock(ctx context.Context, msg rhz.MsgNewBlock) error {
+func (h *Handler) OnNewBlock(ctx context.Context, msg rhz2.MsgNewBlock) error {
 	h.logger.Infow("OnNewBlock", "msg", msg)
 
 	return nil
