@@ -4,20 +4,22 @@ import (
 	"context"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/drgomesp/rhizom/internal/rhznode"
+	"github.com/drgomesp/rhizom/pkg/node"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-func init() {
-}
+var app *cli.App
 
-func main() {
-	app := &cli.App{
+func init() {
+	app = &cli.App{
 		Name:  "rhznode",
 		Usage: "fight the loneliness!",
 		Action: func(c *cli.Context) (err error) {
@@ -32,7 +34,9 @@ func main() {
 			return errors.Wrap(fullNode.Start(ctx), "failed to run full node")
 		},
 	}
+}
 
+func main() {
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(errors.Wrap(err, "failed to run full node"))
 	}
@@ -51,21 +55,39 @@ func buildLogger() (*zap.Logger, error) {
 	return logger, nil
 }
 
-func makeFullNode(ctx context.Context) (*rhznode.FullNode, error) {
+func makeFullNode(ctx context.Context) (*node.Node, error) {
 	logger, err := buildLogger()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to initialize logger")
 	}
 
-	var rhz *rhznode.FullNode
+	var fullNode *node.Node
 
-	if rhz, err = rhznode.NewFullNode(logger.Sugar()); err != nil {
+	if fullNode, err = rhznode.NewFullNode(logger.Sugar()); err != nil {
 		return nil, errors.Wrap(err, "failed to initialize full node")
 	}
 
-	if err = rhz.Start(ctx); err != nil {
+	if err = startNode(ctx, fullNode); err != nil {
 		return nil, errors.Wrap(err, "failed to start full node")
 	}
 
-	return rhz, nil
+	return fullNode, nil
+}
+
+func startNode(ctx context.Context, node *node.Node) error {
+	if err := node.Start(ctx); err != nil {
+		return err
+	}
+
+	go func() {
+		sig := make(chan os.Signal, 1)
+		signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+
+		defer signal.Stop(sig)
+
+		<-sig
+		log.Println("interrupt signal, shutting down...")
+	}()
+
+	return nil
 }

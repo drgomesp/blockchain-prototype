@@ -28,6 +28,7 @@ func (s *Server) setupPubSub(ctx context.Context) error {
 // setupSubscriptions sets the pub/sub topic subscriptions.
 func (s *Server) setupSubscriptions(ctx context.Context) {
 	var wg sync.WaitGroup
+
 	wg.Add(len(s.cfg.Topics))
 
 	select {
@@ -58,7 +59,12 @@ func (s *Server) setupSubscriptions(ctx context.Context) {
 
 // subscribe to a topic.
 func (s *Server) subscribe(_ context.Context, topicName string) (*pubsub.Subscription, *pubsub.Topic, error) {
-	if t, ok := s.topics[topicName]; !ok {
+	var (
+		ok bool
+		t  *pubsub.Topic
+	)
+
+	if t, ok = s.topics[topicName]; !ok {
 		topic, err := s.pubSub.Join(topicName)
 		if err != nil {
 			return nil, nil, errors.Wrapf(err, "failed to join topic %s", topicName)
@@ -74,13 +80,14 @@ func (s *Server) subscribe(_ context.Context, topicName string) (*pubsub.Subscri
 		mutex.Unlock()
 
 		return sub, topic, nil
-	} else {
-		sub, err := t.Subscribe()
-		if err != nil {
-			return nil, nil, err
-		}
-		return sub, t, nil
 	}
+
+	sub, err := t.Subscribe()
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "failed to subscribe to topic: ")
+	}
+
+	return sub, t, nil
 }
 
 // handleSubscription handles messages from a given subscription.
@@ -100,9 +107,10 @@ func (s *Server) handleSubscription(ctx context.Context, sub *pubsub.Subscriptio
 				if err != nil {
 					s.logger.Error("failed get next topic message: ", err)
 
-					continue
+					break
 				}
 
+				// TODO: make this come from the outside
 				m := Message{
 					Type:    MsgType(*msg.Topic),
 					Payload: bytes.NewReader(msg.Data),
@@ -115,10 +123,10 @@ func (s *Server) handleSubscription(ctx context.Context, sub *pubsub.Subscriptio
 				if err := m.Decode(&msgNewBlock); err != nil {
 					s.logger.Error(err)
 
-					continue
+					break
 				}
 
-				s.logger.Debugw("message received from topic", "topic", msg.Topic, "msg", msgNewBlock)
+				s.logger.Debugw("msg", "topic", msg.Topic, "msg", msgNewBlock)
 			}
 		}
 	}

@@ -6,6 +6,7 @@ import (
 
 	p2p "github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	router "github.com/libp2p/go-libp2p-core/routing"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
@@ -15,6 +16,7 @@ import (
 	yamux "github.com/libp2p/go-libp2p-yamux"
 	"github.com/libp2p/go-tcp-transport"
 	ws "github.com/libp2p/go-ws-transport"
+	"github.com/multiformats/go-multiaddr"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
@@ -32,14 +34,14 @@ const ServerName = "p2p"
 // Server manages a p2p network.
 type Server struct {
 	// Dependencies
-	cfg       Config             // cfg server options.
-	logger    *zap.SugaredLogger // logger provided logger.
-	protocols []Protocol         // protocols supported by the server.
-	host      host.Host          // host is the actual p2p node within the network.
-	dht       *kaddht.IpfsDHT    // dht discovery service.
-	pubSub    *pubsub.PubSub     // pubSub is a p2p publish/subscribe service.
-	topics    map[string]*pubsub.Topic
-	peer      *Peer // Peer is the local p2p peer.
+	cfg       Config                   // cfg server options.
+	logger    *zap.SugaredLogger       // logger provided logger.
+	protocols []Protocol               // protocols supported by the server.
+	host      host.Host                // host is the actual p2p node within the network.
+	dht       *kaddht.IpfsDHT          // dht discovery service.
+	pubSub    *pubsub.PubSub           // pubSub is a p2p publish/subscribe service.
+	topics    map[string]*pubsub.Topic // topics of that the server is subscribed to.
+	peer      *Peer                    // Peer is the local p2p peer.
 
 	// Control flags and channels
 	running         bool              // running controls the run loop.
@@ -126,6 +128,7 @@ func (s *Server) setupLocalHost(ctx context.Context) error {
 		),
 		p2p.ListenAddrStrings(
 			"/ip4/0.0.0.0/tcp/0",
+			"/ip4/0.0.0.0/tcp/0/ws", // WebSocker address
 		),
 		p2p.ChainOptions(
 			p2p.Muxer("/yamux/1.0.0", yamux.DefaultTransport),
@@ -237,4 +240,55 @@ func (s *Server) PeerConnected(p *Peer) bool {
 func (s *Server) RegisterProtocols(protocols ...Protocol) {
 	s.protocols = protocols
 	s.registerProtocols(context.Background())
+}
+
+func (s *Server) connectPeerByAddr(ctx context.Context, addr string) (*Peer, error) {
+	peerAddr, err := multiaddr.NewMultiaddr(addr)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to initialize multiaddr")
+	}
+
+	peerInfo, err := peer.AddrInfoFromP2pAddr(peerAddr)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to load addr info from multiaddr")
+	}
+
+	return s.setupConnection(ctx, peerInfo)
+}
+
+// setupProtocolConnection sets up a peer connection from an incoming network.Stream.
+func (s *Server) setupProtocolConnection(
+	ctx context.Context,
+	peerInfo *peer.AddrInfo,
+	stream network.Stream,
+) (*Peer, error) {
+	s.logger.Debugw(
+		"protocol negotiated",
+		"protocol", stream.Protocol(), "peer", peerInfo.ID.ShortString(),
+	)
+
+	p, err := s.setupConnection(ctx, peerInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	p.conn = &connection{}
+
+	return p, nil
+}
+
+// setupProtocolConnection sets up a peer connection, runs the handshakes and tries to
+// add the connection as a Peer.
+func (s *Server) setupConnection(
+	ctx context.Context,
+	peerInfo *peer.AddrInfo,
+) (*Peer, error) {
+	p := &Peer{
+		info:   peerInfo,
+		pubSub: s.pubSub,
+	}
+
+	go s.AddPeer(ctx, p)
+
+	return p, nil
 }

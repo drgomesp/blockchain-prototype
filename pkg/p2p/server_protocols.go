@@ -1,22 +1,23 @@
 package p2p
 
 import (
+	"bufio"
 	"context"
+	"io"
+	"io/ioutil"
 	"math/rand"
-	"reflect"
 
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/pkg/errors"
-	"github.com/ugorji/go/codec"
 )
 
-type msgHandlerFunc func(ctx context.Context, req MsgReadWriter) error
+var ErrNoPeersFound = errors.New("no peers found")
 
 func (s *Server) registerProtocols(ctx context.Context) {
-	streaming := func(protocolID protocol.ID, handler msgHandlerFunc) network.StreamHandler {
+	streamHandler := func(protocolID protocol.ID, handler StreamHandlerFunc) network.StreamHandler {
 		return func(netStream network.Stream) {
 			defer func() {
 				_ = netStream.Close()
@@ -25,35 +26,85 @@ func (s *Server) registerProtocols(ctx context.Context) {
 			pid := netStream.Conn().RemotePeer()
 			peerInfo := s.host.Peerstore().PeerInfo(pid)
 
-			p, err := s.connectPeer(ctx, &peerInfo, netStream)
+			p, err := s.setupProtocolConnection(ctx, &peerInfo, netStream)
 			if err != nil {
 				s.logger.Error("stream open failed", err)
 
 				return
 			}
 
-			p.conn.SetProtocolID(protocolID)
-			s.AddPeer(ctx, p)
+			go s.AddPeer(ctx, p)
 
-			err = handler(ctx, p.conn.transport)
+			rw := &protoRW{
+				pid:          pid,
+				host:         s.host,
+				readProtocol: ProtocolType(protocolID),
+				read:         bufio.NewReader(netStream),
+				write:        bufio.NewWriter(netStream),
+			}
+
+			rpid, msg, err := handler(ctx, rw)
 			if err != nil {
 				s.logger.Error(err)
+
+				return
+			}
+
+			rw.writeProtocol = ProtocolType(s.fullProtocolID(string(rpid)))
+
+			// early return if we are handling a response, which needs no communicating back
+			if rpid == NilProtocol {
+				return
+			}
+
+			if err = Send(ctx, rw, MsgType(rpid), msg); err != nil {
+				s.logger.Error(err)
+
+				return
 			}
 		}
 	}
 
 	for _, proto := range s.protocols {
-		go s.dht.Host().SetStreamHandler(protocol.ID(proto.ID), streaming(protocol.ID(proto.ID), proto.Run))
+		pid := s.fullProtocolID(proto.ID)
+		go s.dht.Host().SetStreamHandler(pid, streamHandler(pid, proto.Run))
 	}
 }
 
+// WriteMsg ...
+func (s *Server) WriteMsg(ctx context.Context, msg *Message) (err error) {
+	var peerFound peer.ID
+
+	for topicName := range s.topics {
+		if peerFound, err = s.findPeerByTopic(topicName); err != nil {
+			if !errors.Is(err, ErrNoPeersFound) {
+				return errors.Wrap(err, "find peer by topic failed")
+			}
+		}
+	}
+
+	if peerFound == "" {
+		return ErrNoPeersFound
+	}
+
+	return stream(ctx, s.dht.Host(), peerFound, s.fullProtocolID(string(msg.Type)), msg.Payload)
+}
+
+// ReadMsg ..
+func (s *Server) ReadMsg(ctx context.Context) (*Message, error) {
+	// TODO
+	panic("implement me")
+}
+
+// findPeerByTopic finds a pseudo-random peer by a given topic, excluding myself.
 func (s *Server) findPeerByTopic(topicName string) (peer.ID, error) {
 	if len(s.topics) == 0 {
 		return "", errors.New("no topic subscriptions")
 	}
+
 	topic, ok := s.topics[topicName]
 	if !ok {
-		return "", errors.New("no peer available")
+		return "", ErrNoPeersFound
 	}
 
 	removeMyself := func(peers []peer.ID) []peer.ID {
@@ -70,14 +121,16 @@ func (s *Server) findPeerByTopic(topicName string) (peer.ID, error) {
 
 	peers := removeMyself(topic.ListPeers())
 	if len(peers) == 0 {
-		return "", errors.New("no available peers")
+		return "", ErrNoPeersFound
 	}
-	chosen := peers[rand.Intn(len(peers))]
-	return chosen, nil
+
+	// TODO: maybe change this pseudo-random to a more proper random (crypto/rand).
+	return peers[rand.Intn(len(peers))], nil
 }
 
-func stream(ctx context.Context, host host.Host, pid peer.ID, protocol protocol.ID, msg []byte) error {
-	out, err := host.NewStream(ctx, pid, protocol)
+// stream opens a new stream and sends a message to a given peer through some protocol.
+func stream(ctx context.Context, host host.Host, pid peer.ID, protoID protocol.ID, msg io.Reader) error {
+	out, err := host.NewStream(ctx, pid, protoID)
 	if err != nil {
 		return err
 	}
@@ -86,42 +139,18 @@ func stream(ctx context.Context, host host.Host, pid peer.ID, protocol protocol.
 		_ = out.Close()
 	}()
 
-	if _, err := out.Write(msg); err != nil {
+	data, err := ioutil.ReadAll(msg)
+	if err != nil {
+		return err
+	}
+
+	if _, err := out.Write(data); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (s *Server) StreamMsg(ctx context.Context, msgType MsgType, msg interface{}) (err error) {
-	var found peer.ID
-	for tn := range s.topics {
-		found, err = s.findPeerByTopic(tn)
-		if found != "" {
-			err = nil
-			break
-		}
-	}
-
-	if err != nil {
-		return err
-	}
-
-	var ch codec.CborHandle
-	ch.MapType = reflect.TypeOf(map[string]interface{}(nil))
-	h := &ch
-
-	var data []byte
-
-	enc := codec.NewEncoderBytes(&data, h)
-	if err := enc.Encode(msg); err != nil {
-		return errors.Wrap(err, "message encode failed")
-	}
-
-	if err := stream(ctx, s.dht.Host(), found, protocol.ID(msgType), data); err != nil {
-		return err
-	}
-
-	s.logger.Debugw("message sent", "peer", found.ShortString(), "msg", msg)
-	return nil
+func (s *Server) fullProtocolID(pid string) protocol.ID {
+	return protocol.ID(pid + s.cfg.NetworkName)
 }
