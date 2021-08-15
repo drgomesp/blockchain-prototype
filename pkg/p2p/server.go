@@ -11,6 +11,7 @@ import (
 	router "github.com/libp2p/go-libp2p-core/routing"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
 	mplex "github.com/libp2p/go-libp2p-mplex"
+	noise "github.com/libp2p/go-libp2p-noise"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	secio "github.com/libp2p/go-libp2p-secio"
 	yamux "github.com/libp2p/go-libp2p-yamux"
@@ -134,7 +135,10 @@ func (s *Server) setupLocalHost(ctx context.Context) error {
 			p2p.Muxer("/yamux/1.0.0", yamux.DefaultTransport),
 			p2p.Muxer("/mplex/6.7.0", mplex.DefaultTransport),
 		),
-		p2p.Security(secio.ID, secio.New),
+		p2p.ChainOptions(
+			p2p.Security(secio.ID, secio.New),
+			p2p.Security(noise.ID, noise.New),
+		),
 		p2p.Routing(func(h host.Host) (router.PeerRouting, error) {
 			var err error
 			s.dht, err = kaddht.New(ctx, h)
@@ -205,7 +209,7 @@ func (s *Server) AddPeer(ctx context.Context, peer *Peer) {
 		}
 
 		if err = s.dht.Host().Connect(ctx, *peer.info); err != nil {
-			s.logger.Warnw("couldn't connect to peer", "err", err)
+			// s.logger.Warnw("couldn't connect to peer", "err", err)
 
 			continue
 		}

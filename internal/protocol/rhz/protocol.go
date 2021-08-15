@@ -2,8 +2,6 @@ package rhz
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
 	"github.com/drgomesp/rhizom/internal"
 	"github.com/drgomesp/rhizom/pkg/p2p"
@@ -30,9 +28,9 @@ type MessagePacket interface {
 // Request/response messages.
 const (
 	// MsgTypeGetBlocks represents a request for blocks.
-	MsgTypeGetBlocks = p2p.MsgType("/rhz/blocks/req/")
+	MsgTypeGetBlocks = p2p.MsgType("/rhz/blocks/req/" + internal.NetworkName)
 	// MsgTypeBlocks represents a response to a request for blocks.
-	MsgTypeBlocks = p2p.MsgType("/rhz/blocks/resp/")
+	MsgTypeBlocks = p2p.MsgType("/rhz/blocks/resp/" + internal.NetworkName)
 )
 
 // Async broadcast messages.
@@ -52,10 +50,10 @@ var (
 		)
 	}
 	ErrRequestTypeNotSupported = func(t p2p.MsgType) error {
-		return fmt.Errorf("request type not '%s' supported by protocol handler", t)
+		return errors.Errorf("request type '%s' not supported by protocol handler", t)
 	}
 	ErrResponseTypeNotSupported = func(t p2p.MsgType) error {
-		return fmt.Errorf("response type '%s' not supported by protocol handler", t)
+		return errors.Errorf("response type '%s' not supported by protocol handler", t)
 	}
 )
 
@@ -84,8 +82,6 @@ func ProtocolHandlerFunc(msgType uint, peering Peering) p2p.StreamHandlerFunc {
 		if err != nil {
 			return p2p.NilProtocol, nil, errors.Wrap(err, "message read failed")
 		}
-
-		msg.Type = p2p.MsgType(strings.TrimSuffix(string(msg.Type), internal.NetworkName))
 
 		switch msgType {
 		case MsgTypeRequest:
