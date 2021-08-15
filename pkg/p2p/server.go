@@ -65,7 +65,7 @@ func NewServer(config Config, opt ...ServerOption) (*Server, error) {
 	srv := &Server{
 		cfg:     config,
 		dht:     new(kaddht.IpfsDHT),
-		topics:  make(map[string]*pubsub.Topic, 0),
+		topics:  make(map[string]*pubsub.Topic),
 		running: false,
 		quit:    make(chan bool),
 		peerChan: peerChannels{
@@ -150,12 +150,14 @@ func (s *Server) setupLocalHost(ctx context.Context) error {
 		}),
 	)
 	if err != nil {
-		return errors.Wrap(err, "h peer setup failed") // TODO: change to const
+		// TODO: change to const
+		return errors.Wrap(err, "peer setup failed")
 	}
 
 	p, err := NewPeer(host.InfoFromHost(h), s.pubSub)
 	if err != nil {
-		return errors.Wrap(err, "peer setup failed") // TODO: change to const
+		// TODO: change to const
+		return errors.Wrap(err, "peer setup failed")
 	}
 
 	s.host = h

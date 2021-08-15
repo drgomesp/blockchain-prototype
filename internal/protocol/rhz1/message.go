@@ -1,4 +1,4 @@
-package rhz
+package rhz1
 
 import (
 	"github.com/drgomesp/rhizom/pkg/block"

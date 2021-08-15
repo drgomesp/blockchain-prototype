@@ -3,7 +3,7 @@ package rhznode
 import (
 	"context"
 
-	rhz2 "github.com/drgomesp/rhizom/internal/protocol/rhz"
+	rhz2 "github.com/drgomesp/rhizom/internal/protocol/rhz1"
 	"go.uber.org/zap"
 )
 

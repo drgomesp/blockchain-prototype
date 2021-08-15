@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/drgomesp/rhizom/internal"
-	"github.com/drgomesp/rhizom/internal/protocol/rhz"
+	"github.com/drgomesp/rhizom/internal/protocol/rhz1"
 	"github.com/drgomesp/rhizom/pkg/node"
 	"github.com/drgomesp/rhizom/pkg/p2p"
 	"github.com/pkg/errors"
@@ -30,12 +30,12 @@ const (
 	p2pServerPingTimeout = time.Second * 5
 )
 
-// FullNode implements a full node type in the Rhizom NetworkName.
+// FullNode implements a full node type in the Rhizom network.
 type FullNode struct {
 	*node.Node
 	logger    *zap.SugaredLogger
-	peering   rhz.Peering
-	broadcast rhz.Broadcast
+	peering   rhz1.Peering
+	broadcast rhz1.Broadcast
 	p2pServer *p2p.Server
 }
 
@@ -54,8 +54,8 @@ func NewFullNode(logger *zap.SugaredLogger) (*node.Node, error) {
 				TopicProducers,
 				TopicTransactions,
 				TopicRequestSync,
-				string(rhz.MsgTypeGetBlocks),
-				string(rhz.MsgTypeBlocks),
+				string(rhz1.MsgTypeGetBlocks),
+				string(rhz1.MsgTypeBlocks),
 			},
 		},
 	}, node.WithLogger(logger))
@@ -90,12 +90,12 @@ func (n *FullNode) Start(ctx context.Context) (err error) {
 			{
 				factor := 5
 
-				p := rhz.MsgTypeGetBlocks
+				p := rhz1.MsgTypeGetBlocks
 				if err := p2p.Send(
 					ctx,
 					n.p2pServer,
 					p,
-					rhz.MsgGetBlocks{IndexHave: 0, IndexNeed: 5},
+					rhz1.MsgGetBlocks{IndexHave: 0, IndexNeed: 5},
 				); err != nil {
 					if errors.Is(err, p2p.ErrNoPeersFound) {
 						continue
@@ -120,15 +120,15 @@ func (n *FullNode) Name() string {
 	return "full_node"
 }
 
-func (n *FullNode) Protocols(backend rhz.Peering) []p2p.Protocol {
+func (n *FullNode) Protocols(backend rhz1.Peering) []p2p.Protocol {
 	return []p2p.Protocol{
 		{
-			ID:  string(rhz.MsgTypeGetBlocks),
-			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeRequest, backend),
+			ID:  string(rhz1.MsgTypeGetBlocks),
+			Run: rhz1.ProtocolHandlerFunc(rhz1.MsgTypeRequest, backend),
 		},
 		{
-			ID:  string(rhz.MsgTypeBlocks),
-			Run: rhz.ProtocolHandlerFunc(rhz.MsgTypeResponse, backend),
+			ID:  string(rhz1.MsgTypeBlocks),
+			Run: rhz1.ProtocolHandlerFunc(rhz1.MsgTypeResponse, backend),
 		},
 	}
 }

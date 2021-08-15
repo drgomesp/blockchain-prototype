@@ -1,7 +1,6 @@
 package p2p
 
 import (
-	"bytes"
 	"context"
 	"sync"
 
@@ -103,30 +102,30 @@ func (s *Server) handleSubscription(ctx context.Context, sub *pubsub.Subscriptio
 			}
 		default:
 			{
-				msg, err := sub.Next(ctx)
-				if err != nil {
-					s.logger.Error("failed get next topic message: ", err)
-
-					break
-				}
-
-				// TODO: make this come from the outside
-				m := Message{
-					Type:    MsgType(*msg.Topic),
-					Payload: bytes.NewReader(msg.Data),
-				}
-				var msgNewBlock struct {
-					Header struct {
-						Index uint64
-					}
-				}
-				if err := m.Decode(&msgNewBlock); err != nil {
-					s.logger.Error(err)
-
-					break
-				}
-
-				s.logger.Debugw("msg", "topic", msg.Topic, "msg", msgNewBlock)
+				//msg, err := sub.Next(ctx)
+				//if err != nil {
+				//	s.logger.Error("failed get next topic message: ", err)
+				//
+				//	break
+				//}
+				//
+				//// TODO: make this come from the outside
+				//m := Message{
+				//	Type:    MsgType(*msg.Topic),
+				//	Payload: bytes.NewReader(msg.Data),
+				//}
+				//var msgNewBlock struct {
+				//	Header struct {
+				//		Index uint64
+				//	}
+				//}
+				//if err := m.Decode(&msgNewBlock); err != nil {
+				//	s.logger.Error(err)
+				//
+				//	break
+				//}
+				//
+				//s.logger.Debugw("msg", "topic", msg.Topic, "msg", msgNewBlock)
 			}
 		}
 	}
