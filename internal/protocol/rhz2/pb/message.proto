@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package rhz2;
+
+enum MsgType {
+  GetBlocksRequest = 0;
+  GetBlocksResponse = 1;
+}
+
+message Block {
+  message Header {
+    uint64 index = 1;
+  }
+}
+
+message GetBlocks {
+  message Request {
+    uint64 index = 1;
+  }
+
+  message Response {
+    bool updated = 1;
+    repeated Block blocks = 2;
+  }
+}

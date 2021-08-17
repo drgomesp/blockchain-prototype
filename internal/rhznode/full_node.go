@@ -6,6 +6,8 @@ import (
 
 	"github.com/drgomesp/rhizom/internal"
 	"github.com/drgomesp/rhizom/internal/protocol/rhz1"
+	rhz2 "github.com/drgomesp/rhizom/internal/protocol/rhz2"
+	rhz2pb "github.com/drgomesp/rhizom/internal/protocol/rhz2/pb"
 	"github.com/drgomesp/rhizom/pkg/node"
 	"github.com/drgomesp/rhizom/pkg/p2p"
 	"github.com/pkg/errors"
@@ -16,15 +18,15 @@ import (
 const serviceTag = "rhizom"
 
 var bootstrapAddrs = []string{
-	"/dns4/bootstrapper-1.rhz.network/tcp/4001/ipfs/Qmf8Lt1FiQnG7tLrQbhwvUXzBMYsj6KicNdKiD1F2rSRW5",
-	"/dns4/bootstrapper-2.rhz.network/tcp/4001/ipfs/QmcRoi1mQ7eb7xPDhWZjGL8rivAUHwCv1FMiLw7FGSZvFL",
+	"/dns4/bootstrapper-1.rhz1.network/tcp/4001/ipfs/Qmf8Lt1FiQnG7tLrQbhwvUXzBMYsj6KicNdKiD1F2rSRW5",
+	"/dns4/bootstrapper-2.rhz1.network/tcp/4001/ipfs/QmcRoi1mQ7eb7xPDhWZjGL8rivAUHwCv1FMiLw7FGSZvFL",
 }
 
 const (
-	TopicBlocks       = "/rhz/blk/" + internal.NetworkName
-	TopicProducers    = "/rhz/prc/" + internal.NetworkName
-	TopicTransactions = "/rhz/tx/" + internal.NetworkName
-	TopicRequestSync  = "/rhz/blkchain/req/" + internal.NetworkName
+	TopicBlocks       = "/rhz1/blk/" + internal.NetworkName
+	TopicProducers    = "/rhz1/prc/" + internal.NetworkName
+	TopicTransactions = "/rhz1/tx/" + internal.NetworkName
+	TopicRequestSync  = "/rhz1/blkchain/req/" + internal.NetworkName
 
 	p2pServerMaxPeers    = 5
 	p2pServerPingTimeout = time.Second * 5
@@ -90,18 +92,20 @@ func (n *FullNode) Start(ctx context.Context) (err error) {
 			{
 				factor := 5
 
-				p := rhz1.MsgTypeGetBlocks
+				pid := p2p.MsgType(rhz2pb.MsgType_GetBlocksRequest)
 				if err := p2p.Send(
 					ctx,
 					n.p2pServer,
-					p,
-					rhz1.MsgGetBlocks{IndexHave: 0, IndexNeed: 5},
+					pid,
+					&rhz2pb.GetBlocks_Request{
+						Index: 9999,
+					},
 				); err != nil {
 					if errors.Is(err, p2p.ErrNoPeersFound) {
 						continue
 					}
 
-					n.logger.Errorw(err.Error(), "protocol", p)
+					n.logger.Errorw(err.Error(), "protocol", pid)
 				}
 
 				time.Sleep(time.Second * time.Duration(factor))
@@ -122,13 +126,17 @@ func (n *FullNode) Name() string {
 
 func (n *FullNode) Protocols(backend rhz1.Peering) []p2p.Protocol {
 	return []p2p.Protocol{
+		//{
+		//	ID:  string(rhz1.MsgTypeGetBlocks),
+		//	Run: rhz1.ProtocolHandlerFunc(rhz1.MsgTypeRequest, backend),
+		//},
+		//{
+		//	ID:  string(rhz1.MsgTypeBlocks),
+		//	Run: rhz1.ProtocolHandlerFunc(rhz1.MsgTypeResponse, backend),
+		//},
 		{
-			ID:  string(rhz1.MsgTypeGetBlocks),
-			Run: rhz1.ProtocolHandlerFunc(rhz1.MsgTypeRequest, backend),
-		},
-		{
-			ID:  string(rhz1.MsgTypeBlocks),
-			Run: rhz1.ProtocolHandlerFunc(rhz1.MsgTypeResponse, backend),
+			ID:  string(rhz2pb.MsgType_GetBlocksRequest),
+			Run: rhz2.ProtocolHandlerFunc(),
 		},
 	}
 }
