@@ -1,10 +1,9 @@
-package service
+package rpc
 
 import (
 	"context"
 	"testing"
 
-	"github.com/drgomesp/rhizom/pkg/rpc"
 	"github.com/drgomesp/rhizom/proto/gen/message"
 	"github.com/drgomesp/rhizom/proto/gen/stream"
 	th "github.com/drgomesp/rhizom/test/testhelper"
@@ -14,12 +13,12 @@ import (
 	"google.golang.org/grpc"
 )
 
-func Test_NewServer(t *testing.T) {
+func Test_NewBlockStream(t *testing.T) {
 	s := NewBlockStream()
 	assert.NotNil(t, s)
 }
 
-func TestService(t *testing.T) {
+func TestBlockStream(t *testing.T) {
 	// nettest local network listener
 	netT := th.LocalListener(t)
 	defer func() { assert.NoError(t, netT.Close()) }()
@@ -27,7 +26,7 @@ func TestService(t *testing.T) {
 	// server setup
 	setup := grpc.NewServer()
 	stream.RegisterBlockServer(setup, NewBlockStream())
-	s := rpc.NewServer("test", setup)
+	s := NewServer("test", setup)
 
 	// run Server
 	go func() {

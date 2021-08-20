@@ -1,6 +1,8 @@
 package rpc
 
 import (
+	"net"
+
 	"google.golang.org/grpc"
 )
 
@@ -23,7 +25,7 @@ func NewServer(name string, grcpServer *grpc.Server) *API {
 func (s *API) Name() string { return s.name }
 
 // Start this server instance.
-func (s *API) Start(listener Listener) error { return s.grpc.Serve(listener) }
+func (s *API) Start(listener net.Listener) error { return s.grpc.Serve(listener) }
 
 // Info about this server instance.
 func (s *API) Info() map[string]grpc.ServiceInfo { return s.grpc.GetServiceInfo() }

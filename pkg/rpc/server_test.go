@@ -10,13 +10,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-func Test_NewListener(t *testing.T) {
-	port := 7000
-	l := NewListener(port)
-	defer l.Close()
-	assert.NotNil(t, l)
-}
-
 func Test_NewServer(t *testing.T) {
 	s := NewServer("test", grpc.NewServer())
 	assert.NotNil(t, s)

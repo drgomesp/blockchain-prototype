@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"time"
 
 	"github.com/drgomesp/rhizom/proto/gen/entity"
 	"github.com/drgomesp/rhizom/proto/gen/message"
@@ -17,8 +16,10 @@ const serverAddr = "localhost:7000"
 
 var blockchain []*entity.Block
 
-func streamData(stream stream.Block_GetBlockClient, ch chan<- uint64) {
-	defer close(ch)
+func streamData(stream stream.Block_GetBlockClient) {
+	req := &message.RequestStreamGetBlock{
+		IndexWant: 1,
+	}
 	for {
 		switch resp, err := stream.Recv(); err {
 		case nil:
@@ -26,7 +27,13 @@ func streamData(stream stream.Block_GetBlockClient, ch chan<- uint64) {
 				log.Fatal(err)
 			}
 			blockchain = append(blockchain, resp.Block)
-			ch <- resp.Block.Index
+			req = &message.RequestStreamGetBlock{
+				IndexWant: resp.Block.Index + 1,
+			}
+			if err := stream.Send(req); err != nil {
+				log.Fatalf("failed to send req: %s", err)
+			}
+			fmt.Println(resp)
 
 		case io.EOF:
 			return
@@ -50,38 +57,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	defer func() {
 		if err := stream.CloseSend(); err != nil {
 			panic(err)
 		}
 	}()
 
-	ch := make(chan uint64)
-
-	go streamData(stream, ch)
-	req := &message.RequestStreamGetBlock{}
-
-	if err := stream.Send(req); err != nil {
-		log.Fatalf("failed to send req: %s", err)
-	}
-
-	tick := time.Tick(time.Second * 10)
-
-	for {
-		fmt.Printf("\nblocks: %d\n", len(blockchain))
-
-		select {
-		case i := <-ch:
-			i++
-			req = &message.RequestStreamGetBlock{IndexWant: i}
-
-			if err := stream.Send(req); err != nil {
-				log.Fatalf("failed to send req: %s", err)
-			}
-			time.Sleep(time.Second)
-
-		case <-tick:
-			return
-		}
-	}
+	streamData(stream)
 }

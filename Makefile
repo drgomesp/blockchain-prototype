@@ -11,3 +11,9 @@ all: clean
 
 clean:
 	rm -rf ./proto/gen
+
+rpc-server:
+	@go run ./cmd/rpc/rpc-server/main.go
+	
+rpc-client:
+	@go run ./cmd/rpc/rpc-client/main.go
