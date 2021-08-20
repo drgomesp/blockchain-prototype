@@ -50,7 +50,7 @@ func (s *Server) registerProtocols(ctx context.Context) {
 				return
 			}
 
-			rw.writeProtocol = ProtocolType(s.fullProtocolID(string(rpid)))
+			rw.writeProtocol = rpid
 
 			// early return if we are handling a response, which needs no communicating back
 			if rpid == NilProtocol {
@@ -66,7 +66,7 @@ func (s *Server) registerProtocols(ctx context.Context) {
 	}
 
 	for _, proto := range s.protocols {
-		pid := s.fullProtocolID(proto.ID)
+		pid := protocol.ID(proto.ID)
 		go s.dht.Host().SetStreamHandler(pid, streamHandler(pid, proto.Run))
 	}
 }
@@ -87,7 +87,7 @@ func (s *Server) WriteMsg(ctx context.Context, msg *Message) (err error) {
 		return ErrNoPeersFound
 	}
 
-	return stream(ctx, s.dht.Host(), peerFound, s.fullProtocolID(string(msg.Type)), msg.Payload)
+	return stream(ctx, s.dht.Host(), peerFound, protocol.ID(msg.Type), msg.Payload)
 }
 
 // ReadMsg ..
@@ -149,8 +149,4 @@ func stream(ctx context.Context, host host.Host, pid peer.ID, protoID protocol.I
 	}
 
 	return nil
-}
-
-func (s *Server) fullProtocolID(pid string) protocol.ID {
-	return protocol.ID(pid + s.cfg.NetworkName)
 }

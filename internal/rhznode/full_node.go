@@ -54,6 +54,8 @@ func NewFullNode(logger *zap.SugaredLogger) (*node.Node, error) {
 				TopicProducers,
 				TopicTransactions,
 				TopicRequestSync,
+				string(rhz.MsgTypeGetBlocks),
+				string(rhz.MsgTypeBlocks),
 			},
 		},
 	}, node.WithLogger(logger))

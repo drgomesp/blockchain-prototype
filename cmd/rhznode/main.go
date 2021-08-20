@@ -30,8 +30,9 @@ func init() {
 			if err != nil {
 				return errors.Wrap(err, "failed to initialize full node")
 			}
+			_ = fullNode
 
-			return errors.Wrap(fullNode.Start(ctx), "failed to run full node")
+			return startNode(ctx, fullNode)
 		},
 	}
 }
@@ -65,10 +66,6 @@ func makeFullNode(ctx context.Context) (*node.Node, error) {
 
 	if fullNode, err = rhznode.NewFullNode(logger.Sugar()); err != nil {
 		return nil, errors.Wrap(err, "failed to initialize full node")
-	}
-
-	if err = startNode(ctx, fullNode); err != nil {
-		return nil, errors.Wrap(err, "failed to start full node")
 	}
 
 	return fullNode, nil
