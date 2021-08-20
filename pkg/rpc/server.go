@@ -1,23 +1,34 @@
 package rpc
 
 import (
-	"context"
+	"net"
+
+	"google.golang.org/grpc"
 )
 
-type Server struct{}
-
-func NewServer() (*Server, error) {
-	return &Server{}, nil
+// API type uses the gRPC and the generated resources from protobuff
+// to receive requests and communicate through the internet.
+type API struct {
+	name string
+	grpc *grpc.Server
 }
 
-func (s *Server) Name() string {
-	return "rpc"
+// NewServer instantiates a new API object.
+func NewServer(name string, grcpServer *grpc.Server) *API {
+	return &API{
+		name: name,
+		grpc: grcpServer,
+	}
 }
 
-func (s *Server) Start(_ context.Context) error {
-	return nil
-}
+// Name of this server instance.
+func (s *API) Name() string { return s.name }
 
-func (s *Server) Stop(_ context.Context) error {
-	return nil
-}
+// Start this server instance.
+func (s *API) Start(listener net.Listener) error { return s.grpc.Serve(listener) }
+
+// Info about this server instance.
+func (s *API) Info() map[string]grpc.ServiceInfo { return s.grpc.GetServiceInfo() }
+
+// Stop this server open connections.
+func (s *API) Stop() { s.grpc.Stop() }
