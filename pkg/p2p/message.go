@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/ugorji/go/codec"
 )
@@ -15,7 +14,7 @@ import (
 // MsgType defines a type identifier for messages.
 type MsgType string
 
-// MsgDecoder defines something that can be decoded into any value.
+// MsgDecoder defines a decoder for messages.
 type MsgDecoder interface {
 	Decode(v interface{}) error
 }
@@ -60,26 +59,36 @@ func (m *Message) Decode(v interface{}) error {
 		return errors.Wrap(err, "message decode failed")
 	}
 
+	//data, err := ioutil.ReadAll(m.Payload)
+	//if err != nil {
+	//	return errors.Wrap(err, "message read failed")
+	//}
+	//
+	//if err := proto.Unmarshal(data, protov1.MessageV1(v.(proto.Message))); err != nil {
+	//	return err
+	//}
+
 	return nil
 }
 
 // Send an encoded message through the read/writer pipe.
-func Send(ctx context.Context, rw MsgReadWriter, t MsgType, msg proto.Message) error {
-	//// TODO: abstract encoding somewhere, but definitely not here.
-	//var ch codec.CborHandle
-	//h := &ch
-	//
-	//var data []byte
-	//enc := codec.NewEncoderBytes(&data, h)
-	//
-	//if err := enc.Encode(msg); err != nil {
-	//	return errors.Wrap(err, "message encode failed")
-	//}
+func Send(ctx context.Context, rw MsgReadWriter, t MsgType, msg interface{}) error {
+	// TODO: abstract encoding somewhere, but definitely not here.
+	var ch codec.CborHandle
+	h := &ch
 
-	out, err := proto.Marshal(msg)
-	if err != nil {
+	var out []byte
+	enc := codec.NewEncoderBytes(&out, h)
+
+	if err := enc.Encode(msg); err != nil {
 		return errors.Wrap(err, "message encode failed")
 	}
+
+	//out, err := proto.Marshal(msg)
+	//if err != nil {
+	//	return errors.Wrap(err, "message encode failed")
+	//}
+	//
 
 	if err := rw.WriteMsg(ctx, &Message{
 		Type:    t,

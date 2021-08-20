@@ -17,7 +17,10 @@ type ProtocolType string
 
 var NilProtocol = ProtocolType("")
 
-// StreamHandlerFunc defines the sub-protocol handler function to handle incoming or outgoing messages.
+// StreamHandlerFunc defines the sub-protocol handler function to
+// handle incoming or outgoing messages.
+//
+// The handler function may return a ProtocolType, a response (if applicable) and an error.
 type StreamHandlerFunc func(context.Context, MsgReadWriter) (ProtocolType, interface{}, error)
 
 // Protocol defines a sub-protocol for communication in the network.
