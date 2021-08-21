@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package rhz2;
+
+message Block {
+  message Header {
+    uint64 index = 1;
+  }
+
+  Header header = 1;
+}

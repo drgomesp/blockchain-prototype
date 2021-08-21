@@ -1,14 +1,8 @@
 syntax = "proto3";
 
+import "block.proto";
+
 package rhz2;
-
-message Block {
-  message Header {
-    uint64 index = 1;
-  }
-
-  Header header = 1;
-}
 
 message GetBlocks {
   message Request {

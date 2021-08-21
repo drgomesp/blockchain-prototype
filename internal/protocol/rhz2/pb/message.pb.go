@@ -22,100 +22,6 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
-type Block struct {
-	Header               *Block_Header `protobuf:"bytes,1,opt,name=header,proto3" json:"header,omitempty"`
-	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
-	XXX_unrecognized     []byte        `json:"-"`
-	XXX_sizecache        int32         `json:"-"`
-}
-
-func (m *Block) Reset()         { *m = Block{} }
-func (m *Block) String() string { return proto.CompactTextString(m) }
-func (*Block) ProtoMessage()    {}
-func (*Block) Descriptor() ([]byte, []int) {
-	return fileDescriptor_33c57e4bae7b9afd, []int{0}
-}
-func (m *Block) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *Block) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_Block.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *Block) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Block.Merge(m, src)
-}
-func (m *Block) XXX_Size() int {
-	return m.Size()
-}
-func (m *Block) XXX_DiscardUnknown() {
-	xxx_messageInfo_Block.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Block proto.InternalMessageInfo
-
-func (m *Block) GetHeader() *Block_Header {
-	if m != nil {
-		return m.Header
-	}
-	return nil
-}
-
-type Block_Header struct {
-	Index                uint64   `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *Block_Header) Reset()         { *m = Block_Header{} }
-func (m *Block_Header) String() string { return proto.CompactTextString(m) }
-func (*Block_Header) ProtoMessage()    {}
-func (*Block_Header) Descriptor() ([]byte, []int) {
-	return fileDescriptor_33c57e4bae7b9afd, []int{0, 0}
-}
-func (m *Block_Header) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *Block_Header) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_Block_Header.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *Block_Header) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Block_Header.Merge(m, src)
-}
-func (m *Block_Header) XXX_Size() int {
-	return m.Size()
-}
-func (m *Block_Header) XXX_DiscardUnknown() {
-	xxx_messageInfo_Block_Header.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Block_Header proto.InternalMessageInfo
-
-func (m *Block_Header) GetIndex() uint64 {
-	if m != nil {
-		return m.Index
-	}
-	return 0
-}
-
 type GetBlocks struct {
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -126,7 +32,7 @@ func (m *GetBlocks) Reset()         { *m = GetBlocks{} }
 func (m *GetBlocks) String() string { return proto.CompactTextString(m) }
 func (*GetBlocks) ProtoMessage()    {}
 func (*GetBlocks) Descriptor() ([]byte, []int) {
-	return fileDescriptor_33c57e4bae7b9afd, []int{1}
+	return fileDescriptor_33c57e4bae7b9afd, []int{0}
 }
 func (m *GetBlocks) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -166,7 +72,7 @@ func (m *GetBlocks_Request) Reset()         { *m = GetBlocks_Request{} }
 func (m *GetBlocks_Request) String() string { return proto.CompactTextString(m) }
 func (*GetBlocks_Request) ProtoMessage()    {}
 func (*GetBlocks_Request) Descriptor() ([]byte, []int) {
-	return fileDescriptor_33c57e4bae7b9afd, []int{1, 0}
+	return fileDescriptor_33c57e4bae7b9afd, []int{0, 0}
 }
 func (m *GetBlocks_Request) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -214,7 +120,7 @@ func (m *GetBlocks_Response) Reset()         { *m = GetBlocks_Response{} }
 func (m *GetBlocks_Response) String() string { return proto.CompactTextString(m) }
 func (*GetBlocks_Response) ProtoMessage()    {}
 func (*GetBlocks_Response) Descriptor() ([]byte, []int) {
-	return fileDescriptor_33c57e4bae7b9afd, []int{1, 1}
+	return fileDescriptor_33c57e4bae7b9afd, []int{0, 1}
 }
 func (m *GetBlocks_Response) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -258,8 +164,6 @@ func (m *GetBlocks_Response) GetBlocks() []*Block {
 }
 
 func init() {
-	proto.RegisterType((*Block)(nil), "rhz2.Block")
-	proto.RegisterType((*Block_Header)(nil), "rhz2.Block.Header")
 	proto.RegisterType((*GetBlocks)(nil), "rhz2.GetBlocks")
 	proto.RegisterType((*GetBlocks_Request)(nil), "rhz2.GetBlocks.Request")
 	proto.RegisterType((*GetBlocks_Response)(nil), "rhz2.GetBlocks.Response")
@@ -268,91 +172,18 @@ func init() {
 func init() { proto.RegisterFile("message.proto", fileDescriptor_33c57e4bae7b9afd) }
 
 var fileDescriptor_33c57e4bae7b9afd = []byte{
-	// 198 bytes of a gzipped FileDescriptorProto
+	// 167 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0xcd, 0x4d, 0x2d, 0x2e,
-	0x4e, 0x4c, 0x4f, 0xd5, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x29, 0xca, 0xa8, 0x32, 0x52,
-	0x0a, 0xe6, 0x62, 0x75, 0xca, 0xc9, 0x4f, 0xce, 0x16, 0xd2, 0xe2, 0x62, 0xcb, 0x48, 0x4d, 0x4c,
-	0x49, 0x2d, 0x92, 0x60, 0x54, 0x60, 0xd4, 0xe0, 0x36, 0x12, 0xd2, 0x03, 0xc9, 0xeb, 0x81, 0x25,
-	0xf5, 0x3c, 0xc0, 0x32, 0x41, 0x50, 0x15, 0x52, 0x72, 0x5c, 0x6c, 0x10, 0x11, 0x21, 0x11, 0x2e,
-	0xd6, 0xcc, 0xbc, 0x94, 0xd4, 0x0a, 0xb0, 0x26, 0x96, 0x20, 0x08, 0x47, 0xa9, 0x9c, 0x8b, 0xd3,
-	0x3d, 0xb5, 0x04, 0xac, 0xb5, 0x58, 0x4a, 0x9e, 0x8b, 0x3d, 0x28, 0xb5, 0xb0, 0x34, 0xb5, 0xb8,
-	0x04, 0xbb, 0x6a, 0x29, 0x4f, 0x2e, 0x8e, 0xa0, 0xd4, 0xe2, 0x82, 0xfc, 0xbc, 0xe2, 0x54, 0x21,
-	0x09, 0x2e, 0xf6, 0xd2, 0x82, 0x94, 0xc4, 0x92, 0xd4, 0x14, 0xb0, 0x1a, 0x8e, 0x20, 0x18, 0x57,
-	0x48, 0x99, 0x8b, 0x2d, 0x09, 0x6c, 0xa0, 0x04, 0x93, 0x02, 0xb3, 0x06, 0xb7, 0x11, 0x37, 0x92,
-	0xfb, 0x82, 0xa0, 0x52, 0x4e, 0x3c, 0x27, 0x1e, 0xc9, 0x31, 0x5e, 0x78, 0x24, 0xc7, 0xf8, 0xe0,
-	0x91, 0x1c, 0x63, 0x12, 0x1b, 0xd8, 0xa3, 0xc6, 0x80, 0x00, 0x00, 0x00, 0xff, 0xff, 0x58, 0x23,
-	0x4d, 0xea, 0xf9, 0x00, 0x00, 0x00,
-}
-
-func (m *Block) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Block) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Block) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	if m.Header != nil {
-		{
-			size, err := m.Header.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintMessage(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *Block_Header) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Block_Header) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Block_Header) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	if m.Index != 0 {
-		i = encodeVarintMessage(dAtA, i, uint64(m.Index))
-		i--
-		dAtA[i] = 0x8
-	}
-	return len(dAtA) - i, nil
+	0x4e, 0x4c, 0x4f, 0xd5, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x29, 0xca, 0xa8, 0x32, 0x92,
+	0xe2, 0x4e, 0xca, 0xc9, 0x4f, 0xce, 0x86, 0x08, 0x29, 0x95, 0x73, 0x71, 0xba, 0xa7, 0x96, 0x38,
+	0x81, 0x44, 0x8a, 0xa5, 0xe4, 0xb9, 0xd8, 0x83, 0x52, 0x0b, 0x4b, 0x53, 0x8b, 0x4b, 0x84, 0x44,
+	0xb8, 0x58, 0x33, 0xf3, 0x52, 0x52, 0x2b, 0x24, 0x18, 0x15, 0x18, 0x35, 0x58, 0x82, 0x20, 0x1c,
+	0x29, 0x4f, 0x2e, 0x8e, 0xa0, 0xd4, 0xe2, 0x82, 0xfc, 0xbc, 0xe2, 0x54, 0x21, 0x09, 0x2e, 0xf6,
+	0xd2, 0x82, 0x94, 0xc4, 0x92, 0xd4, 0x14, 0xb0, 0x1a, 0x8e, 0x20, 0x18, 0x57, 0x48, 0x99, 0x8b,
+	0x0d, 0x6c, 0x45, 0xb1, 0x04, 0x93, 0x02, 0xb3, 0x06, 0xb7, 0x11, 0xb7, 0x1e, 0xc8, 0x5e, 0x3d,
+	0xb0, 0x25, 0x41, 0x50, 0x29, 0x27, 0x9e, 0x13, 0x8f, 0xe4, 0x18, 0x2f, 0x3c, 0x92, 0x63, 0x7c,
+	0xf0, 0x48, 0x8e, 0x31, 0x89, 0x0d, 0xec, 0x1a, 0x63, 0x40, 0x00, 0x00, 0x00, 0xff, 0xff, 0x65,
+	0x3e, 0xe7, 0xfa, 0xb1, 0x00, 0x00, 0x00,
 }
 
 func (m *GetBlocks) Marshal() (dAtA []byte, err error) {
@@ -476,37 +307,6 @@ func encodeVarintMessage(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return base
 }
-func (m *Block) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.Header != nil {
-		l = m.Header.Size()
-		n += 1 + l + sovMessage(uint64(l))
-	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
-	}
-	return n
-}
-
-func (m *Block_Header) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.Index != 0 {
-		n += 1 + sovMessage(uint64(m.Index))
-	}
-	if m.XXX_unrecognized != nil {
-		n += len(m.XXX_unrecognized)
-	}
-	return n
-}
-
 func (m *GetBlocks) Size() (n int) {
 	if m == nil {
 		return 0
@@ -560,163 +360,6 @@ func sovMessage(x uint64) (n int) {
 }
 func sozMessage(x uint64) (n int) {
 	return sovMessage(uint64((x << 1) ^ uint64((int64(x) >> 63))))
-}
-func (m *Block) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowMessage
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Block: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Block: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Header", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowMessage
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthMessage
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthMessage
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.Header == nil {
-				m.Header = &Block_Header{}
-			}
-			if err := m.Header.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipMessage(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthMessage
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *Block_Header) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowMessage
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: Header: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: Header: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Index", wireType)
-			}
-			m.Index = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowMessage
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Index |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		default:
-			iNdEx = preIndex
-			skippy, err := skipMessage(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthMessage
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
 }
 func (m *GetBlocks) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
