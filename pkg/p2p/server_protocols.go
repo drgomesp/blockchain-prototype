@@ -27,13 +27,7 @@ func (s *Server) registerProtocols(ctx context.Context) {
 			pid := netStream.Conn().RemotePeer()
 			peerInfo := s.host.Peerstore().PeerInfo(pid)
 
-			p, err := s.setupProtocolConnection(ctx, &peerInfo, netStream)
-			if err != nil {
-				s.logger.Error("stream open failed", err)
-
-				return
-			}
-
+			p := s.setupProtocolConnection(ctx, &peerInfo)
 			go s.AddPeer(ctx, p)
 
 			rw := &protoRW{

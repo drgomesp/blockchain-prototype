@@ -6,7 +6,6 @@ import (
 
 	p2p "github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
 	router "github.com/libp2p/go-libp2p-core/routing"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
@@ -211,7 +210,7 @@ func (s *Server) AddPeer(ctx context.Context, peer *Peer) {
 		}
 
 		if err = s.dht.Host().Connect(ctx, *peer.info); err != nil {
-			// s.logger.Warnw("couldn't connect to peer", "err", err)
+			s.logger.Warnw("couldn't connect to peer", "err", err)
 
 			continue
 		}
@@ -259,36 +258,25 @@ func (s *Server) connectPeerByAddr(ctx context.Context, addr string) (*Peer, err
 		return nil, errors.Wrap(err, "failed to load addr info from multiaddr")
 	}
 
-	return s.setupConnection(ctx, peerInfo)
+	return s.setupConnection(ctx, peerInfo), nil
 }
 
 // setupProtocolConnection sets up a peer connection from an incoming network.Stream.
-func (s *Server) setupProtocolConnection(
-	ctx context.Context,
-	peerInfo *peer.AddrInfo,
-	stream network.Stream,
-) (*Peer, error) {
-	s.logger.Debugw(
-		"protocol negotiated",
-		"protocol", stream.Protocol(), "peer", peerInfo.ID.ShortString(),
-	)
-
-	p, err := s.setupConnection(ctx, peerInfo)
-	if err != nil {
-		return nil, err
+func (s *Server) setupProtocolConnection(ctx context.Context, peerInfo *peer.AddrInfo) *Peer {
+	p := &Peer{
+		info:   peerInfo,
+		pubSub: s.pubSub,
+		conn:   &connection{},
 	}
 
-	p.conn = &connection{}
+	go s.AddPeer(ctx, p)
 
-	return p, nil
+	return p
 }
 
-// setupProtocolConnection sets up a peer connection, runs the handshakes and tries to
-// add the connection as a Peer.
-func (s *Server) setupConnection(
-	ctx context.Context,
-	peerInfo *peer.AddrInfo,
-) (*Peer, error) {
+// setupConnection sets up a peer connection, runs the handshakes
+// and tries to add the connection as a Peer.
+func (s *Server) setupConnection(ctx context.Context, peerInfo *peer.AddrInfo) *Peer {
 	p := &Peer{
 		info:   peerInfo,
 		pubSub: s.pubSub,
@@ -296,5 +284,5 @@ func (s *Server) setupConnection(
 
 	go s.AddPeer(ctx, p)
 
-	return p, nil
+	return p
 }
