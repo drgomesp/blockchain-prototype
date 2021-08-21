@@ -7,7 +7,6 @@ import (
 	"github.com/drgomesp/rhizom/internal"
 	"github.com/drgomesp/rhizom/internal/protocol/rhz1"
 	"github.com/drgomesp/rhizom/internal/protocol/rhz2"
-	rhz2pb "github.com/drgomesp/rhizom/internal/protocol/rhz2/pb"
 	"github.com/drgomesp/rhizom/pkg/node"
 	"github.com/drgomesp/rhizom/pkg/p2p"
 	"github.com/pkg/errors"
@@ -89,22 +88,23 @@ func (n *FullNode) Start(ctx context.Context) (err error) {
 		default:
 			{
 				factor := 1
+				var msgType p2p.MsgType
 
-				msgType := rhz2.MsgTypeGetBlocksRequest
-				if err := p2p.Send(
-					ctx,
-					n.p2pServer,
-					msgType,
-					&rhz2pb.GetBlocks_Request{
-						Index: 3,
-					},
-				); err != nil {
-					if errors.Is(err, p2p.ErrNoPeersFound) {
-						continue
-					}
-
-					n.logger.Errorw(err.Error(), "protocol", msgType)
-				}
+				//msgType = rhz2.MsgTypeGetBlocksRequest
+				//if err := p2p.Send(
+				//	ctx,
+				//	n.p2pServer,
+				//	msgType,
+				//	&rhz2pb.GetBlocks_Request{
+				//		Index: 3,
+				//	},
+				//); err != nil {
+				//	if errors.Is(err, p2p.ErrNoPeersFound) {
+				//		continue
+				//	}
+				//
+				//	n.logger.Errorw(err.Error(), "protocol", msgType)
+				//}
 
 				time.Sleep(time.Second * time.Duration(factor))
 
