@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"math/rand"
 
-	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -52,7 +51,7 @@ func (s *Server) registerProtocols(ctx context.Context) {
 				return
 			}
 
-			if err = Send(ctx, rw, MsgType(rpid), msg.(proto.Message)); err != nil {
+			if err = Send(ctx, rw, MsgType(rpid), msg); err != nil {
 				s.logger.Error(err)
 
 				return
@@ -86,7 +85,7 @@ func (s *Server) WriteMsg(ctx context.Context, msg *Message) (err error) {
 }
 
 // ReadMsg ..
-func (s *Server) ReadMsg(ctx context.Context) (*Message, error) {
+func (s *Server) ReadMsg(_ context.Context) (*Message, error) {
 	// TODO
 	panic("implement me")
 }

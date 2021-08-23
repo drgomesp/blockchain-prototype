@@ -7,6 +7,8 @@ import (
 	"github.com/drgomesp/rhizom/internal"
 	"github.com/drgomesp/rhizom/internal/protocol/rhz1"
 	"github.com/drgomesp/rhizom/internal/protocol/rhz2"
+	pb "github.com/drgomesp/rhizom/internal/protocol/rhz2/pb"
+	"github.com/drgomesp/rhizom/internal/rhz"
 	"github.com/drgomesp/rhizom/pkg/node"
 	"github.com/drgomesp/rhizom/pkg/p2p"
 	"github.com/pkg/errors"
@@ -35,8 +37,8 @@ const (
 type FullNode struct {
 	*node.Node
 	logger    *zap.SugaredLogger
-	peering   rhz1.Peering
-	broadcast rhz1.Broadcast
+	peering   rhz.Peering
+	broadcast rhz.Broadcast
 	p2pServer *p2p.Server
 }
 
@@ -62,14 +64,15 @@ func NewFullNode(logger *zap.SugaredLogger) (*node.Node, error) {
 		return nil, errors.Wrap(err, "failed initialize node")
 	}
 
-	backend := NewHandler(logger)
-
 	fullNode := &FullNode{
 		logger:    logger,
 		p2pServer: n.Server(),
-		peering:   backend,
-		broadcast: backend,
+		peering:   rhz.NewPeeringService(logger),
+		// broadcast: peeringService,
 	}
+
+	// TODO: this needs to be injected somehow.
+	rhz2.Logger = logger
 
 	n.RegisterAPIs(nil)
 	n.RegisterProtocols(fullNode.Protocols(fullNode.peering)...)
@@ -90,23 +93,21 @@ func (n *FullNode) Start(ctx context.Context) (err error) {
 				factor := 1
 				var msgType p2p.MsgType
 
-				//msgType = rhz2.MsgTypeGetBlocksRequest
-				//if err := p2p.Send(
-				//	ctx,
-				//	n.p2pServer,
-				//	msgType,
-				//	&rhz2pb.GetBlocks_Request{
-				//		Index: 3,
-				//	},
-				//); err != nil {
-				//	if errors.Is(err, p2p.ErrNoPeersFound) {
-				//		continue
-				//	}
-				//
-				//	n.logger.Errorw(err.Error(), "protocol", msgType)
-				//}
+				msgType = rhz2.MsgTypeGetBlocksRequest
+				if err := p2p.Send(
+					ctx,
+					n.p2pServer,
+					msgType,
+					&pb.GetBlocks_Request{
+						Index: 55,
+					},
+				); err != nil {
+					if errors.Is(err, p2p.ErrNoPeersFound) {
+						continue
+					}
 
-				time.Sleep(time.Second * time.Duration(factor))
+					n.logger.Errorw(err.Error(), "protocol", msgType)
+				}
 
 				msgType = rhz1.MsgTypeGetBlocks
 				if err := p2p.Send(
@@ -124,6 +125,7 @@ func (n *FullNode) Start(ctx context.Context) (err error) {
 
 					n.logger.Errorw(err.Error(), "protocol", msgType)
 				}
+				time.Sleep(time.Second * time.Duration(factor))
 			}
 		}
 	}
@@ -139,7 +141,7 @@ func (n *FullNode) Name() string {
 	return "full_node"
 }
 
-func (n *FullNode) Protocols(backend rhz1.Peering) []p2p.Protocol {
+func (n *FullNode) Protocols(backend rhz.Peering) []p2p.Protocol {
 	return []p2p.Protocol{
 		{
 			ID:  string(rhz1.MsgTypeGetBlocks),
@@ -151,11 +153,11 @@ func (n *FullNode) Protocols(backend rhz1.Peering) []p2p.Protocol {
 		},
 		{
 			ID:  string(rhz2.MsgTypeGetBlocksRequest),
-			Run: rhz2.ProtocolHandlerFunc(rhz2.MsgTypeRequest),
+			Run: rhz2.ProtocolHandlerFunc(rhz2.MsgTypeRequest, backend),
 		},
 		{
 			ID:  string(rhz2.MsgTypeGetBlocksResponse),
-			Run: rhz2.ProtocolHandlerFunc(rhz2.MsgTypeResponse),
+			Run: rhz2.ProtocolHandlerFunc(rhz2.MsgTypeResponse, backend),
 		},
 	}
 }

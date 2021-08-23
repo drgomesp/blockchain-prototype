@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/drgomesp/rhizom/internal"
+	"github.com/drgomesp/rhizom/internal/rhz"
 	"github.com/drgomesp/rhizom/pkg/p2p"
 	"github.com/pkg/errors"
 )
@@ -59,9 +60,9 @@ var (
 
 type (
 	// requestHandlerFunc defines the function type for handling protocol request messages.
-	requestHandlerFunc func(context.Context, Peering, Message) (p2p.ProtocolType, MessagePacket, error)
+	requestHandlerFunc func(context.Context, rhz.Peering, Message) (p2p.ProtocolType, MessagePacket, error)
 	// responseHandlerFunc defines the function type for handling protocol response messages.
-	responseHandlerFunc func(context.Context, Peering, Message) error
+	responseHandlerFunc func(context.Context, rhz.Peering, Message) error
 )
 
 var (
@@ -74,7 +75,7 @@ var (
 )
 
 // ProtocolHandlerFunc is the actual protocol handler implementation required by p2p.Protocol.
-func ProtocolHandlerFunc(msgType uint, peering Peering) p2p.StreamHandlerFunc {
+func ProtocolHandlerFunc(msgType uint, peering rhz.Peering) p2p.StreamHandlerFunc {
 	return func(ctx context.Context, rw p2p.MsgReadWriter) (p2p.ProtocolType, interface{}, error) {
 		_ = NewPeer(rw) // TODO: see if there's a use for peer still.
 
@@ -95,7 +96,7 @@ func ProtocolHandlerFunc(msgType uint, peering Peering) p2p.StreamHandlerFunc {
 }
 
 // handleRequest handles request type messages.
-func handleRequest(ctx context.Context, peering Peering, msg *p2p.Message) (p2p.ProtocolType, interface{}, error) {
+func handleRequest(ctx context.Context, peering rhz.Peering, msg *p2p.Message) (p2p.ProtocolType, interface{}, error) {
 	if handlerFunc := requestHandlers[msg.Type]; handlerFunc != nil {
 		pid, res, err := handlerFunc(ctx, peering, msg)
 		if err != nil {
@@ -109,7 +110,7 @@ func handleRequest(ctx context.Context, peering Peering, msg *p2p.Message) (p2p.
 }
 
 // handleResponse handles response type messages.
-func handleResponse(ctx context.Context, peering Peering, msg *p2p.Message) error {
+func handleResponse(ctx context.Context, peering rhz.Peering, msg *p2p.Message) error {
 	if handlerFunc := responseHandlers[msg.Type]; handlerFunc != nil {
 		return handlerFunc(ctx, peering, msg)
 	}

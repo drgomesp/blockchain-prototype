@@ -3,12 +3,13 @@ package rhz1
 import (
 	"context"
 
+	"github.com/drgomesp/rhizom/internal/rhz"
 	"github.com/drgomesp/rhizom/pkg/p2p"
 	"github.com/pkg/errors"
 )
 
 // HandleGetBlocks handles an incoming request for blocks message.
-func HandleGetBlocks(ctx context.Context, peering Peering, msg Message) (
+func HandleGetBlocks(ctx context.Context, peering rhz.Peering, msg Message) (
 	p2p.ProtocolType, MessagePacket, error,
 ) {
 	var req MsgGetBlocks
@@ -16,22 +17,25 @@ func HandleGetBlocks(ctx context.Context, peering Peering, msg Message) (
 		return p2p.NilProtocol, nil, errors.Wrap(err, "message decode failed")
 	}
 
-	blocks, err := peering.GetBlocks(ctx, peering, req)
+	blocks, err := peering.GetBlocks(ctx, req.IndexNeed)
 	if err != nil {
 		return p2p.NilProtocol, nil, ErrMessageHandleFailed(err)
 	}
 
-	return p2p.ProtocolType(MsgTypeBlocks), blocks, nil
+	return p2p.ProtocolType(MsgTypeBlocks), MsgBlocks{
+		IsUpdated: true,
+		Chain:     blocks,
+	}, nil
 }
 
 // HandleBlocks handles an incoming blocks response.
-func HandleBlocks(ctx context.Context, peering Peering, msg Message) error {
+func HandleBlocks(ctx context.Context, peering rhz.Peering, msg Message) error {
 	var res MsgBlocks
 	if err := msg.Decode(&res); err != nil {
 		return err
 	}
 
-	if err := peering.Blocks(ctx, peering, res); err != nil {
+	if err := peering.Blocks(ctx, res.Chain); err != nil {
 		return ErrMessageHandleFailed(err)
 	}
 

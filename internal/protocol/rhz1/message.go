@@ -12,11 +12,7 @@ type MsgGetBlocks struct {
 
 type MsgBlocks struct {
 	IsUpdated bool
-	Chain     []struct {
-		Header struct {
-			Index uint64
-		}
-	}
+	Chain     []*block.Block
 }
 
 type MsgNewBlock struct {
