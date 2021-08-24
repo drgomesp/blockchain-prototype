@@ -23,7 +23,7 @@ var NilProtocol = ProtocolType("")
 // The handler function may return a ProtocolType, a response (if applicable) and an error.
 type StreamHandlerFunc func(context.Context, MsgReadWriter) (ProtocolType, interface{}, error)
 
-// Protocol defines a sub-protocol for communication in the network.
+// Protocol defines a sub-protocol for communication within the network.
 type Protocol struct {
 	// ID is the unique identifier of the protocol (three-letter word).
 	ID string

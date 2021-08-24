@@ -23,6 +23,8 @@ func (p *PeeringService) GetBlocks(_ context.Context, index uint64) ([]*block.Bl
 	}, nil
 }
 
-func (p *PeeringService) Blocks(_ context.Context, _ []*block.Block) error {
+func (p *PeeringService) Blocks(_ context.Context, blocks []*block.Block) error {
+	p.logger.Debugf("blocks: %v", blocks)
+
 	return nil
 }
