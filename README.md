@@ -1,6 +1,7 @@
 # Rhizom
 
-The official implementation of the Rhizom blockchain protocol, following the reference [specs](https://github.com/rhizomplatform/rhizom-specs).
+The official implementation of the Rhizom blockchain protocol, following the reference
+[specs](https://github.com/drgomesp/blockchain-specs).
 
 ---
 
