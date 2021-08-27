@@ -29,7 +29,7 @@ func HandleGetBlocksRequest(ctx context.Context, peering rhz.Peering, msg p2p.Ms
 	}, nil
 }
 
-func wrapBlocks(blocks []*block.Block) []*pb.Block {
+func wrapBlocks(blocks []block.Block) []*pb.Block {
 	wrappedBlocks := make([]*pb.Block, 0)
 	for _, blk := range blocks {
 		wrappedBlocks = append(wrappedBlocks, &pb.Block{
