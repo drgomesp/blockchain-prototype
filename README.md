@@ -1,4 +1,4 @@
-# Rhizom
+# Blockchain Prototype
 
 The official implementation of the Rhizom blockchain protocol, following the reference
 [specs](https://github.com/drgomesp/blockchain-specs).
