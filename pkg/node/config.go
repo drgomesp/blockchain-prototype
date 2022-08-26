@@ -1,6 +1,6 @@
 package node
 
-import "github.com/drgomesp/rhizom/pkg/p2p"
+import "github.com/drgomesp/acervo/pkg/p2p"
 
 // Config defines the node configuration options.
 type Config struct {

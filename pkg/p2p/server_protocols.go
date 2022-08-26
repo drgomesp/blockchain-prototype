@@ -7,11 +7,12 @@ import (
 	"io/ioutil"
 	"math/rand"
 
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/network"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/protocol"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/core/protocol"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 )
 
 var ErrNoPeersFound = errors.New("no peers found")
@@ -39,7 +40,7 @@ func (s *Server) registerProtocols(ctx context.Context) {
 
 			rpid, msg, err := handler(ctx, rw)
 			if err != nil {
-				s.logger.Error(err)
+				log.Error().Err(err)
 
 				return
 			}
@@ -52,7 +53,7 @@ func (s *Server) registerProtocols(ctx context.Context) {
 			}
 
 			if err = Send(ctx, rw, MsgType(rpid), msg); err != nil {
-				s.logger.Error(err)
+				log.Error().Err(err)
 
 				return
 			}

@@ -6,6 +6,7 @@ import (
 
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 )
 
 var mutex sync.Mutex
@@ -14,8 +15,6 @@ var mutex sync.Mutex
 func (s *Server) setupPubSub(ctx context.Context) error {
 	ps, err := pubsub.NewGossipSub(ctx, s.host)
 	if err != nil {
-		s.logger.Error()
-
 		return errors.Wrap(err, "failed to initialize gossip sub")
 	}
 
@@ -39,14 +38,14 @@ func (s *Server) setupSubscriptions(ctx context.Context) {
 				go func(ctx context.Context, topicName string, wg *sync.WaitGroup) {
 					sub, _, err := s.subscribe(ctx, topicName)
 					if err != nil {
-						s.logger.Error("failed to setup subscriptions: ", err)
+						log.Error().Err(err).Msgf("failed to setup subscriptions: ")
 
 						return
 					}
 
 					go s.handleSubscription(ctx, sub)
 
-					s.logger.Debug("subscribed to topic: ", sub.Topic())
+					log.Debug().Msgf("subscribed to topic: %s", sub.Topic())
 					wg.Done()
 				}(ctx, topicName, &wg)
 			}
@@ -95,7 +94,7 @@ func (s *Server) handleSubscription(ctx context.Context, sub *pubsub.Subscriptio
 		select {
 		case <-ctx.Done():
 			{
-				s.logger.Error(ctx.Err())
+				log.Error().Err(ctx.Err()).Send()
 				sub.Cancel()
 
 				return

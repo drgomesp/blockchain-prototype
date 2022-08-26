@@ -3,9 +3,10 @@ package rhz1
 import (
 	"context"
 
-	"github.com/drgomesp/rhizom/internal/rhz"
-	"github.com/drgomesp/rhizom/pkg/p2p"
 	"github.com/pkg/errors"
+
+	"github.com/drgomesp/acervo/internal/rhz"
+	"github.com/drgomesp/acervo/pkg/p2p"
 )
 
 // HandleGetBlocks handles an incoming request for blocks message.

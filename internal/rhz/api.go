@@ -3,7 +3,7 @@ package rhz
 import (
 	"context"
 
-	"github.com/drgomesp/rhizom/pkg/block"
+	"github.com/drgomesp/acervo/pkg/block"
 )
 
 // Peering defines the bi-directional protocol messages that can be exchanged by peers.

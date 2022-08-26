@@ -5,19 +5,14 @@ import (
 	"time"
 
 	p2p "github.com/libp2p/go-libp2p"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
-	router "github.com/libp2p/go-libp2p-core/routing"
 	kaddht "github.com/libp2p/go-libp2p-kad-dht"
-	mplex "github.com/libp2p/go-libp2p-mplex"
-	noise "github.com/libp2p/go-libp2p-noise"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	secio "github.com/libp2p/go-libp2p-secio"
-	yamux "github.com/libp2p/go-libp2p-yamux"
-	"github.com/libp2p/go-tcp-transport"
-	ws "github.com/libp2p/go-ws-transport"
+	"github.com/libp2p/go-libp2p/core/host"
+	"github.com/libp2p/go-libp2p/core/peer"
+	router "github.com/libp2p/go-libp2p/core/routing"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"go.uber.org/zap"
 )
 
@@ -44,11 +39,12 @@ type Server struct {
 	peer      *Peer                    // Peer is the local p2p peer.
 
 	// Control flags and channels
-	running         bool              // running controls the run loop.
-	quit            chan bool         // quit channel to receive the stop signal.
-	peerChan        peerChannels      // peerChan manages channel-sent peers.
-	peersDiscovered map[peer.ID]*Peer // peersDiscovered holds the discovered Peer nodes.
-	peersConnected  map[peer.ID]*Peer // peersConnected holds recently connected Peer nodes
+	running         bool             // running controls the run loop.
+	quit            chan bool        // quit channel to receive the stop signal.
+	peerChan        peerChannels     // peerChan manages channel-sent peers.
+	peersDiscovered map[string]*Peer // peersDiscovered holds the discovered Peer nodes.
+	peersConnected  map[string]*Peer // peersConnected holds recently connected Peer nodes
+	disc            interface{}
 }
 
 type ServerOption func(*Server)
@@ -71,8 +67,8 @@ func NewServer(config Config, opt ...ServerOption) (*Server, error) {
 			discovered: make(chan *Peer),
 			connected:  make(chan *Peer),
 		},
-		peersDiscovered: make(map[peer.ID]*Peer),
-		peersConnected:  make(map[peer.ID]*Peer),
+		peersDiscovered: make(map[string]*Peer),
+		peersConnected:  make(map[string]*Peer),
 	}
 
 	for _, option := range opt {
@@ -91,7 +87,7 @@ func (s *Server) Start(ctx context.Context) error {
 		return errors.Wrap(err, "failed to initialize peer")
 	}
 
-	if err := s.setupDiscovery(ctx); err != nil {
+	if err := s.setupDiscovery(); err != nil {
 		return errors.Wrap(err, "failed to initialize discovery")
 	}
 
@@ -121,23 +117,6 @@ func (s *Server) Stop(_ context.Context) error {
 // setupLocalHost sets up the local p2p peer.
 func (s *Server) setupLocalHost(ctx context.Context) error {
 	h, err := p2p.New(
-		ctx,
-		p2p.ChainOptions(
-			p2p.Transport(tcp.NewTCPTransport),
-			p2p.Transport(ws.New),
-		),
-		p2p.ListenAddrStrings(
-			"/ip4/0.0.0.0/tcp/0",
-			"/ip4/0.0.0.0/tcp/0/ws", // WebSocker address
-		),
-		p2p.ChainOptions(
-			p2p.Muxer("/yamux/1.0.0", yamux.DefaultTransport),
-			p2p.Muxer("/mplex/6.7.0", mplex.DefaultTransport),
-		),
-		p2p.ChainOptions(
-			p2p.Security(secio.ID, secio.New),
-			p2p.Security(noise.ID, noise.New),
-		),
 		p2p.Routing(func(h host.Host) (router.PeerRouting, error) {
 			var err error
 			s.dht, err = kaddht.New(ctx, h)
@@ -148,6 +127,11 @@ func (s *Server) setupLocalHost(ctx context.Context) error {
 			return s.dht, nil
 		}),
 	)
+
+	for _, addr := range h.Addrs() {
+		log.Debug().Msgf(addr.String())
+	}
+
 	if err != nil {
 		// TODO: change to const
 		return errors.Wrap(err, "peer setup failed")
@@ -171,7 +155,7 @@ func (s *Server) ping(ctx context.Context) {
 		for _, p := range s.peersConnected {
 			if err := s.host.Connect(ctx, *p.info); err != nil {
 				s.RemovePeer(p)
-				s.logger.Debug("peer dropped ", p)
+				log.Debug().Msgf("peer dropped %v", p)
 
 				break
 			}
@@ -190,7 +174,7 @@ running:
 			break running
 		case p := <-s.peerChan.connected:
 			{
-				s.peersConnected[p.info.ID] = p
+				s.peersConnected[p.info.String()] = p
 			}
 		case <-time.After(networkStatePeriod):
 			{
@@ -210,7 +194,7 @@ func (s *Server) AddPeer(ctx context.Context, peer *Peer) {
 		}
 
 		if err = s.dht.Host().Connect(ctx, *peer.info); err != nil {
-			s.logger.Warnw("couldn't connect to peer", "err", err)
+			//log.Warn().Msgf("couldn't connect to peer", "err", err)
 
 			continue
 		}
@@ -231,12 +215,12 @@ func (s *Server) AddPeer(ctx context.Context, peer *Peer) {
 
 // RemovePeer removes a peer from the network.
 func (s *Server) RemovePeer(p *Peer) {
-	delete(s.peersConnected, p.info.ID)
+	delete(s.peersConnected, p.String())
 }
 
 // PeerConnected checks if the peer is connected to the network.
 func (s *Server) PeerConnected(p *Peer) bool {
-	_, is := s.peersConnected[p.info.ID]
+	_, is := s.peersConnected[p.String()]
 
 	return is
 }

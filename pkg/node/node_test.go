@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/drgomesp/rhizom/pkg/node"
+	"github.com/drgomesp/acervo/pkg/node"
 	"github.com/stretchr/testify/assert"
 )
 

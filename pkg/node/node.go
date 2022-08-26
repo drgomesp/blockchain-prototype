@@ -3,10 +3,11 @@ package node
 import (
 	"context"
 
-	"github.com/drgomesp/rhizom/pkg/p2p"
-	"github.com/drgomesp/rhizom/pkg/rpc"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
+
+	"github.com/drgomesp/acervo/pkg/p2p"
+	"github.com/drgomesp/acervo/pkg/rpc"
 )
 
 // Node implements a multi-protocol node in network.

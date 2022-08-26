@@ -2,22 +2,23 @@ package p2p
 
 import (
 	"context"
+
+	"github.com/rs/zerolog/log"
 )
 
 // connectBootstrapPeers connects to all bootstrap peers.
 func (s *Server) connectBootstrapPeers(ctx context.Context) {
-	s.logger.Debug("connecting to bootstrap peers")
+	log.Debug().Msg("connecting to bootstrap peers")
 
 	for {
 		for _, addr := range s.cfg.BootstrapAddrs {
-			p, err := s.connectPeerByAddr(ctx, addr)
+			_, err := s.connectPeerByAddr(ctx, addr)
 			if err != nil {
-				s.logger.Error(err)
-
+				log.Error().Err(err).Send()
 				return
 			}
 
-			s.logger.Debug("connected to bootstrap peer", p.info.ID.ShortString())
+			log.Debug().Msgf("connected to bootstrap peer: %s", addr)
 
 			return
 		}
@@ -31,12 +32,12 @@ func (s *Server) bootstrapNetwork(ctx context.Context) {
 		return
 	default:
 		if err := s.dht.Bootstrap(ctx); err != nil {
-			s.logger.Error("failed to bootstrap network ", err)
+			log.Error().Msgf("failed to bootstrap network ", err)
 
 			return
 		}
 
-		s.logger.Debug("bootstrapped network")
+		log.Debug().Msgf("bootstrapped network")
 
 		return
 	}

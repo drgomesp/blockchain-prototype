@@ -3,18 +3,16 @@ package rhz
 import (
 	"context"
 
-	"github.com/drgomesp/rhizom/pkg/block"
-	"go.uber.org/zap"
+	"github.com/rs/zerolog/log"
+
+	"github.com/drgomesp/acervo/pkg/block"
 )
 
 type PeeringService struct {
-	logger *zap.SugaredLogger
 }
 
-func NewPeeringService(logger *zap.SugaredLogger) *PeeringService {
-	return &PeeringService{
-		logger: logger,
-	}
+func NewPeeringService() *PeeringService {
+	return &PeeringService{}
 }
 
 func (p *PeeringService) GetBlocks(_ context.Context, index uint64) ([]block.Block, error) {
@@ -24,7 +22,7 @@ func (p *PeeringService) GetBlocks(_ context.Context, index uint64) ([]block.Blo
 }
 
 func (p *PeeringService) Blocks(_ context.Context, blocks []block.Block) error {
-	p.logger.Debugf("blocks: %+v", blocks)
+	log.Debug().Msgf("Blocks(blocks=%vs)", blocks)
 
 	return nil
 }

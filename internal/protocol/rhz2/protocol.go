@@ -3,11 +3,13 @@ package rhz2
 import (
 	"context"
 
-	"github.com/drgomesp/rhizom/internal/rhz"
-	"github.com/drgomesp/rhizom/pkg/p2p"
 	"github.com/gogo/protobuf/proto"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"go.uber.org/zap"
+
+	"github.com/drgomesp/acervo/internal/rhz"
+	"github.com/drgomesp/acervo/pkg/p2p"
 )
 
 var Logger *zap.SugaredLogger
@@ -30,13 +32,9 @@ type (
 	responseHandlerFunc func(context.Context, rhz.Peering, p2p.MsgDecoder) (proto.Message, error)
 )
 
-var requestHandlers = map[p2p.MsgType]requestHandlerFunc{
-	MsgTypeGetBlocksRequest: HandleGetBlocksRequest,
-}
+var requestHandlers = map[p2p.MsgType]requestHandlerFunc{}
 
-var responseHandlers = map[p2p.MsgType]responseHandlerFunc{
-	MsgTypeGetBlocksResponse: HandleGetBlocksResponse,
-}
+var responseHandlers = map[p2p.MsgType]responseHandlerFunc{}
 
 func ProtocolHandlerFunc(msgType int, peering rhz.Peering) p2p.StreamHandlerFunc {
 	return func(ctx context.Context, rw p2p.MsgReadWriter) (p2p.ProtocolType, interface{}, error) {
@@ -53,7 +51,7 @@ func ProtocolHandlerFunc(msgType int, peering rhz.Peering) p2p.StreamHandlerFunc
 					return p2p.NilProtocol, nil, err
 				}
 
-				Logger.Debugf("request received: %+v", req)
+				log.Debug().Msgf("request received: %+v", req)
 
 				return rpid, res, nil
 			}
@@ -66,7 +64,7 @@ func ProtocolHandlerFunc(msgType int, peering rhz.Peering) p2p.StreamHandlerFunc
 					return p2p.NilProtocol, nil, err
 				}
 
-				Logger.Debugf("response received: %+v", res)
+				log.Debug().Msgf("response received: %+v", res)
 
 				return p2p.NilProtocol, nil, nil
 			}

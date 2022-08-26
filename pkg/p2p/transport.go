@@ -5,8 +5,8 @@ package p2p
 //	"context"
 //	"reflect"
 //
-//	"github.com/libp2p/go-libp2p-core/network"
-//	"github.com/libp2p/go-libp2p-core/protocol"
+//	"github.com/libp2p/go-libp2p/core/network"
+//	"github.com/libp2p/go-libp2p/core/protocol"
 //	"github.com/pkg/errors"
 //	"github.com/ugorji/go/codec"
 //)

@@ -1,6 +1,6 @@
 # Blockchain Prototype
 
-The official implementation of the Rhizom blockchain protocol, following the reference
+The official implementation of the acervo blockchain protocol, following the reference
 [specs](https://github.com/drgomesp/blockchain-specs).
 
 ---
@@ -11,4 +11,4 @@ The official implementation of the Rhizom blockchain protocol, following the ref
 
 ## Introduction
 
-Rhizom is a new blockchain platform for Market Networks.
+acervo is a new blockchain platform for Market Networks.

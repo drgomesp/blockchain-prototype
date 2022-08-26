@@ -2,18 +2,17 @@ package p2p
 
 import (
 	"context"
-	"time"
 
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p/p2p/discovery"
-	"github.com/pkg/errors"
+	"github.com/libp2p/go-libp2p/core/peer"
+	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
+	"github.com/rs/zerolog/log"
 )
 
 // HandlePeerFound receives a discovered peer.
 func (s *Server) HandlePeerFound(peerInfo peer.AddrInfo) {
 	p, err := NewPeer(&peerInfo, s.pubSub)
 	if err != nil {
-		s.logger.Error("failed to initialize peer: ", err)
+		log.Error().Err(err)
 
 		return
 	}
@@ -22,14 +21,9 @@ func (s *Server) HandlePeerFound(peerInfo peer.AddrInfo) {
 }
 
 // setupDiscovery sets up the peer discovery mechanism.
-func (s *Server) setupDiscovery(ctx context.Context) error {
-	disc, err := discovery.NewMdnsService(ctx, s.host, time.Second, s.cfg.ServiceTag)
-	if err != nil {
-		return errors.Wrap(err, "failed to initialize disc")
-	}
-
-	disc.RegisterNotifee(s)
-
+func (s *Server) setupDiscovery() error {
+	disc := mdns.NewMdnsService(s.host, s.cfg.ServiceTag, s)
+	s.disc = disc
 	return nil
 }
 
@@ -50,10 +44,10 @@ listening:
 					continue
 				}
 
-				s.peersDiscovered[p.info.ID] = p
+				s.peersDiscovered[p.String()] = p
 
 				if !s.PeerConnected(p) {
-					s.logger.Debug("peer discovered ", p)
+					log.Debug().Msgf("peer discovered ", p)
 					s.AddPeer(ctx, p)
 				}
 			}
@@ -63,7 +57,7 @@ listening:
 
 // PeerDiscovered checks if the peer is discovered by the network.
 func (s *Server) PeerDiscovered(peerInfo *peer.AddrInfo) bool {
-	_, is := s.peersDiscovered[peerInfo.ID]
+	_, is := s.peersDiscovered[peerInfo.String()]
 
 	return is
 }

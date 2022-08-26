@@ -1,6 +1,6 @@
 package rhz1
 
-import "github.com/drgomesp/rhizom/pkg/p2p"
+import "github.com/drgomesp/acervo/pkg/p2p"
 
 type Peer struct {
 	rw p2p.MsgReadWriter

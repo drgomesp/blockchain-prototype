@@ -4,23 +4,20 @@ import (
 	"context"
 	"time"
 
-	"github.com/drgomesp/rhizom/internal"
-	"github.com/drgomesp/rhizom/internal/protocol/rhz1"
-	"github.com/drgomesp/rhizom/internal/protocol/rhz2"
-	"github.com/drgomesp/rhizom/internal/rhz"
-	"github.com/drgomesp/rhizom/pkg/node"
-	"github.com/drgomesp/rhizom/pkg/p2p"
+	config "github.com/ipfs/go-ipfs-config"
 	"github.com/pkg/errors"
-	"go.uber.org/zap"
+	"github.com/rs/zerolog/log"
+
+	"github.com/drgomesp/acervo/internal"
+	"github.com/drgomesp/acervo/internal/protocol/rhz1"
+	"github.com/drgomesp/acervo/internal/protocol/rhz2"
+	"github.com/drgomesp/acervo/internal/rhz"
+	"github.com/drgomesp/acervo/pkg/node"
+	"github.com/drgomesp/acervo/pkg/p2p"
 )
 
 // serviceTag is an identifier for the discovery service.
-const serviceTag = "rhizom"
-
-var bootstrapAddrs = []string{
-	"/dns4/bootstrapper-1.rhz.network/tcp/4001/ipfs/Qmf8Lt1FiQnG7tLrQbhwvUXzBMYsj6KicNdKiD1F2rSRW5",
-	"/dns4/bootstrapper-2.rhz.network/tcp/4001/ipfs/QmcRoi1mQ7eb7xPDhWZjGL8rivAUHwCv1FMiLw7FGSZvFL",
-}
+const serviceTag = "acervo"
 
 const (
 	TopicBlocks       = "/rhz/blk/" + internal.NetworkName
@@ -32,16 +29,15 @@ const (
 	p2pServerPingTimeout = time.Second * 5
 )
 
-// FullNode implements a full node type in the Rhizom network.
+// FullNode implements a full node type in the acervo network.
 type FullNode struct {
 	*node.Node
-	logger    *zap.SugaredLogger
 	peering   rhz.Peering
 	broadcast rhz.Broadcast
 	p2pServer *p2p.Server
 }
 
-func NewFullNode(logger *zap.SugaredLogger) (*node.Node, error) {
+func NewFullNode() (*node.Node, error) {
 	n, err := node.New(node.Config{
 		Type: node.TypeFull,
 		Name: "full_node",
@@ -50,7 +46,7 @@ func NewFullNode(logger *zap.SugaredLogger) (*node.Node, error) {
 			ServiceTag:     serviceTag,
 			MaxPeers:       p2pServerMaxPeers,
 			PingTimeout:    p2pServerPingTimeout,
-			BootstrapAddrs: bootstrapAddrs,
+			BootstrapAddrs: config.DefaultBootstrapAddresses,
 			Topics: []string{
 				TopicBlocks,
 				TopicProducers,
@@ -58,20 +54,16 @@ func NewFullNode(logger *zap.SugaredLogger) (*node.Node, error) {
 				TopicRequestSync,
 			},
 		},
-	}, node.WithLogger(logger))
+	})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed initialize node")
 	}
 
 	fullNode := &FullNode{
-		logger:    logger,
 		p2pServer: n.Server(),
-		peering:   rhz.NewPeeringService(logger),
+		peering:   rhz.NewPeeringService(),
 		// broadcast: peeringService,
 	}
-
-	// TODO: this needs to be injected somehow.
-	rhz2.Logger = logger
 
 	n.RegisterAPIs(nil)
 	n.RegisterProtocols(fullNode.Protocols(fullNode.peering)...)
@@ -81,7 +73,7 @@ func NewFullNode(logger *zap.SugaredLogger) (*node.Node, error) {
 }
 
 func (n *FullNode) Start(ctx context.Context) (err error) {
-	n.logger.Info("starting full node")
+	log.Info().Msg("starting full node")
 
 	for {
 		select {
@@ -122,7 +114,7 @@ func (n *FullNode) Start(ctx context.Context) (err error) {
 						continue
 					}
 
-					n.logger.Errorw(err.Error(), "protocol", msgType)
+					log.Error().Err(err).Send()
 				}
 
 				time.Sleep(time.Second * time.Duration(factor))
@@ -132,7 +124,7 @@ func (n *FullNode) Start(ctx context.Context) (err error) {
 }
 
 func (n *FullNode) Stop(_ context.Context) error {
-	n.logger.Infow("stopping full node")
+	log.Info().Msg("stopping full node")
 
 	return nil
 }

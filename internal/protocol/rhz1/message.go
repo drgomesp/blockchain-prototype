@@ -1,8 +1,8 @@
 package rhz1
 
 import (
-	"github.com/drgomesp/rhizom/pkg/block"
-	"github.com/drgomesp/rhizom/pkg/p2p"
+	"github.com/drgomesp/acervo/pkg/block"
+	"github.com/drgomesp/acervo/pkg/p2p"
 )
 
 type MsgGetBlocks struct {

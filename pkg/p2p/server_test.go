@@ -3,7 +3,7 @@ package p2p_test
 import (
 	"testing"
 
-	"github.com/drgomesp/rhizom/pkg/p2p"
+	"github.com/drgomesp/acervo/pkg/p2p"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap/zaptest"
 )
