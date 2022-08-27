@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package acv;
+
+message GetFeeds {
+  message Request {
+    repeated string tags = 1;
+  }
+
+  message Response {
+    repeated string urls = 1;
+  }
+}

@@ -9,8 +9,8 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/drgomesp/acervo/internal"
-	"github.com/drgomesp/acervo/internal/protocol/rhz2"
-	rhz22 "github.com/drgomesp/acervo/internal/protocol/rhz2/pb"
+	"github.com/drgomesp/acervo/internal/protocol/acv"
+	rhz22 "github.com/drgomesp/acervo/internal/protocol/acv/pb"
 	"github.com/drgomesp/acervo/internal/rhz"
 	"github.com/drgomesp/acervo/pkg/node"
 	"github.com/drgomesp/acervo/pkg/p2p"
@@ -75,7 +75,7 @@ func NewFullNode(moniker string) (*node.Node, error) {
 }
 
 func (n *FullNode) Start(ctx context.Context) (err error) {
-	log.Info().Msg("starting full node")
+	log.Info().Msgf("starting node %s", n.moniker)
 
 	for {
 		select {
@@ -83,15 +83,15 @@ func (n *FullNode) Start(ctx context.Context) (err error) {
 			return n.Stop(ctx)
 		default:
 			{
-				factor := 1
 
 				if n.moniker != "marley" {
-					msgType := rhz2.MsgTypeGetBlocksRequest
+					msgType := acv.MsgGetFeedsReq
 
-					if err := p2p.Send(ctx, n.p2pServer, msgType, &rhz22.GetBlocks_Request{
-						Index: 666,
-					},
-					); err != nil {
+					err := p2p.Send(ctx, n.p2pServer, msgType, &rhz22.GetFeeds_Request{
+						Tags: []string{"dev", "foss", "software"},
+					})
+
+					if err != nil {
 						if errors.Is(err, p2p.ErrNoPeersFound) {
 							continue
 						}
@@ -119,6 +119,7 @@ func (n *FullNode) Start(ctx context.Context) (err error) {
 				//	}
 				//}
 
+				factor := 100
 				time.Sleep(time.Second * time.Duration(factor))
 			}
 		}
@@ -146,12 +147,12 @@ func (n *FullNode) Protocols(backend rhz.Peering) []p2p.Protocol {
 		//	Run: rhz1.ProtocolHandlerFunc(rhz1.MsgTypeResponse, backend),
 		//},
 		{
-			ID:  string(rhz2.MsgTypeGetBlocksRequest),
-			Run: rhz2.ProtocolHandlerFunc(rhz2.MsgTypeRequest, backend),
+			ID:  string(acv.MsgGetFeedsReq),
+			Run: acv.ProtocolHandlerFunc(acv.MsgTypeRequest, backend),
 		},
 		{
-			ID:  string(rhz2.MsgTypeGetBlocksResponse),
-			Run: rhz2.ProtocolHandlerFunc(rhz2.MsgTypeResponse, backend),
+			ID:  string(acv.MsgGetFeedsRes),
+			Run: acv.ProtocolHandlerFunc(acv.MsgTypeResponse, backend),
 		},
 	}
 }

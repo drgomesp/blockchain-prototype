@@ -5,10 +5,11 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 
-	"github.com/golang/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
+	protolegacy "github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 )
 
 // MsgType defines a type identifier for messages.
@@ -59,12 +60,12 @@ func (m *Message) Decode(v interface{}) error {
 	//	return errors.Wrap(err, "message decode failed")
 	//}
 
-	data, err := ioutil.ReadAll(m.Payload)
+	data, err := io.ReadAll(m.Payload)
 	if err != nil {
 		return errors.Wrap(err, "message read failed")
 	}
 
-	if err := proto.Unmarshal(data, proto.MessageV1(v.(proto.Message))); err != nil {
+	if err := proto.Unmarshal(data, protolegacy.MessageV1(v.(proto.Message))); err != nil {
 		return err
 	}
 
@@ -84,6 +85,7 @@ func Send(ctx context.Context, rw MsgReadWriter, t MsgType, msg proto.Message) e
 	//	return errors.Wrap(err, "message encode failed")
 	//}
 
+	log.Trace().Str("t", string(t)).Interface("msg", msg).Msgf("p2p.Send")
 	out, err := proto.Marshal(msg)
 	if err != nil {
 		return errors.Wrap(err, "message encode failed")

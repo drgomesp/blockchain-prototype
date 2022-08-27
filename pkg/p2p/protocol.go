@@ -44,7 +44,7 @@ type protoRW struct {
 
 // ReadMsg ...
 func (p *protoRW) ReadMsg(ctx context.Context) (*Message, error) {
-	data, err := ioutil.ReadAll(p.read)
+	data, err := io.ReadAll(p.read)
 	if err != nil {
 		return nil, err
 	}
