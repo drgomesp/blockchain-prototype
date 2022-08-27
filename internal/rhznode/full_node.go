@@ -9,8 +9,8 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/drgomesp/acervo/internal"
-	"github.com/drgomesp/acervo/internal/protocol/rhz1"
 	"github.com/drgomesp/acervo/internal/protocol/rhz2"
+	rhz22 "github.com/drgomesp/acervo/internal/protocol/rhz2/pb"
 	"github.com/drgomesp/acervo/internal/rhz"
 	"github.com/drgomesp/acervo/pkg/node"
 	"github.com/drgomesp/acervo/pkg/p2p"
@@ -32,15 +32,16 @@ const (
 // FullNode implements a full node type in the acervo network.
 type FullNode struct {
 	*node.Node
+	moniker   string
 	peering   rhz.Peering
 	broadcast rhz.Broadcast
 	p2pServer *p2p.Server
 }
 
-func NewFullNode() (*node.Node, error) {
+func NewFullNode(moniker string) (*node.Node, error) {
 	n, err := node.New(node.Config{
 		Type: node.TypeFull,
-		Name: "full_node",
+		Name: moniker,
 		P2P: p2p.Config{
 			NetworkName:    internal.NetworkName,
 			ServiceTag:     serviceTag,
@@ -60,6 +61,7 @@ func NewFullNode() (*node.Node, error) {
 	}
 
 	fullNode := &FullNode{
+		moniker:   moniker,
 		p2pServer: n.Server(),
 		peering:   rhz.NewPeeringService(),
 		// broadcast: peeringService,
@@ -82,40 +84,40 @@ func (n *FullNode) Start(ctx context.Context) (err error) {
 		default:
 			{
 				factor := 1
-				var msgType p2p.MsgType
 
-				//msgType = rhz2.MsgTypeGetBlocksRequest
-				//if err := p2p.Send(
-				//	ctx,
-				//	n.p2pServer,
-				//	msgType,
-				//	&pb.GetBlocks_Request{
-				//		Index: 55,
-				//	},
-				//); err != nil {
-				//	if errors.Is(err, p2p.ErrNoPeersFound) {
-				//		continue
-				//	}
-				//
-				//	n.logger.Errorw(err.Error(), "protocol", msgType)
-				//}
+				if n.moniker != "marley" {
+					msgType := rhz2.MsgTypeGetBlocksRequest
 
-				msgType = rhz1.MsgTypeGetBlocks
-				if err := p2p.Send(
-					ctx,
-					n.p2pServer,
-					msgType,
-					rhz1.MsgGetBlocks{
-						IndexHave: 0,
-						IndexNeed: 10,
+					if err := p2p.Send(ctx, n.p2pServer, msgType, &rhz22.GetBlocks_Request{
+						Index: 666,
 					},
-				); err != nil {
-					if errors.Is(err, p2p.ErrNoPeersFound) {
-						continue
-					}
+					); err != nil {
+						if errors.Is(err, p2p.ErrNoPeersFound) {
+							continue
+						}
 
-					log.Error().Err(err).Send()
+						log.Error().Err(err).Send()
+					}
 				}
+
+				//if n.moniker != "bob" {
+				//	msgType = rhz1.MsgTypeGetBlocks
+				//	if err := p2p.Send(
+				//		ctx,
+				//		n.p2pServer,
+				//		msgType,
+				//		rhz1.MsgGetBlocks{
+				//			IndexHave: 0,
+				//			IndexNeed: 10,
+				//		},
+				//	); err != nil {
+				//		if errors.Is(err, p2p.ErrNoPeersFound) {
+				//			continue
+				//		}
+				//
+				//		log.Error().Err(err).Send()
+				//	}
+				//}
 
 				time.Sleep(time.Second * time.Duration(factor))
 			}
@@ -135,14 +137,14 @@ func (n *FullNode) Name() string {
 
 func (n *FullNode) Protocols(backend rhz.Peering) []p2p.Protocol {
 	return []p2p.Protocol{
-		{
-			ID:  string(rhz1.MsgTypeGetBlocks),
-			Run: rhz1.ProtocolHandlerFunc(rhz1.MsgTypeRequest, backend),
-		},
-		{
-			ID:  string(rhz1.MsgTypeBlocks),
-			Run: rhz1.ProtocolHandlerFunc(rhz1.MsgTypeResponse, backend),
-		},
+		//{
+		//	ID:  string(rhz1.MsgTypeGetBlocks),
+		//	Run: rhz1.ProtocolHandlerFunc(rhz1.MsgTypeRequest, backend),
+		//},
+		//{
+		//	ID:  string(rhz1.MsgTypeBlocks),
+		//	Run: rhz1.ProtocolHandlerFunc(rhz1.MsgTypeResponse, backend),
+		//},
 		{
 			ID:  string(rhz2.MsgTypeGetBlocksRequest),
 			Run: rhz2.ProtocolHandlerFunc(rhz2.MsgTypeRequest, backend),

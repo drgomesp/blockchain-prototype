@@ -24,7 +24,7 @@ func (s *Server) HandlePeerFound(peerInfo peer.AddrInfo) {
 func (s *Server) setupDiscovery() error {
 	disc := mdns.NewMdnsService(s.host, s.cfg.ServiceTag, s)
 	s.disc = disc
-	return nil
+	return disc.Start()
 }
 
 // discover for incoming discovered peers.

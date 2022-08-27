@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 
+	"github.com/gogo/protobuf/proto"
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	"github.com/libp2p/go-libp2p/core/protocol"
@@ -21,7 +22,7 @@ var NilProtocol = ProtocolType("")
 // handle incoming or outgoing messages.
 //
 // The handler function may return a ProtocolType, a response (if applicable) and an error.
-type StreamHandlerFunc func(context.Context, MsgReadWriter) (ProtocolType, interface{}, error)
+type StreamHandlerFunc func(context.Context, MsgReadWriter) (ProtocolType, proto.Message, error)
 
 // Protocol defines a sub-protocol for communication within the network.
 type Protocol struct {

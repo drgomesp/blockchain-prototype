@@ -24,13 +24,16 @@ func main() {
 	app := &cli.App{
 		Name:  "rhznode",
 		Usage: "fight the loneliness!",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:  "moniker",
+				Value: "marley",
+			},
+		},
 		Action: func(c *cli.Context) (err error) {
-			ctx, cancelFunc := context.WithCancel(c.Context)
-			defer cancelFunc()
-
 			var fullNode *node.Node
 
-			if fullNode, err = rhznode.NewFullNode(); err != nil {
+			if fullNode, err = rhznode.NewFullNode(c.String("moniker")); err != nil {
 				return errors.Wrap(err, "failed to initialize full node")
 			}
 			if err != nil {
@@ -38,7 +41,7 @@ func main() {
 			}
 			_ = fullNode
 
-			return startNode(ctx, fullNode)
+			return startNode(c.Context, fullNode)
 		},
 	}
 	if err := app.Run(os.Args); err != nil {

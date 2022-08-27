@@ -3,11 +3,13 @@ package rhz2
 import (
 	"context"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gogo/protobuf/proto"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"go.uber.org/zap"
 
+	rhz2 "github.com/drgomesp/acervo/internal/protocol/rhz2/pb"
 	"github.com/drgomesp/acervo/internal/rhz"
 	"github.com/drgomesp/acervo/pkg/p2p"
 )
@@ -32,12 +34,32 @@ type (
 	responseHandlerFunc func(context.Context, rhz.Peering, p2p.MsgDecoder) (proto.Message, error)
 )
 
-var requestHandlers = map[p2p.MsgType]requestHandlerFunc{}
+var requestHandlers = map[p2p.MsgType]requestHandlerFunc{
+	MsgTypeGetBlocksRequest: func(ctx context.Context, peering rhz.Peering, decoder p2p.MsgDecoder) (
+		proto.Message, p2p.ProtocolType, proto.Message, error,
+	) {
+		msg := &rhz2.GetBlocks_Response{
+			Updated: true,
+			Blocks: []*rhz2.Block{
+				{Header: &rhz2.Block_Header{Index: 1}},
+				{Header: &rhz2.Block_Header{Index: 2}},
+				{Header: &rhz2.Block_Header{Index: 3}},
+			},
+		}
+		spew.Dump(decoder)
+		return nil, p2p.ProtocolType(MsgTypeGetBlocksResponse), msg, nil
+	},
+}
 
-var responseHandlers = map[p2p.MsgType]responseHandlerFunc{}
+var responseHandlers = map[p2p.MsgType]responseHandlerFunc{
+	MsgTypeGetBlocksResponse: func(ctx context.Context, peering rhz.Peering, decoder p2p.MsgDecoder) (proto.Message, error) {
+		spew.Dump(decoder)
+		return nil, nil
+	},
+}
 
 func ProtocolHandlerFunc(msgType int, peering rhz.Peering) p2p.StreamHandlerFunc {
-	return func(ctx context.Context, rw p2p.MsgReadWriter) (p2p.ProtocolType, interface{}, error) {
+	return func(ctx context.Context, rw p2p.MsgReadWriter) (p2p.ProtocolType, proto.Message, error) {
 		msg, err := rw.ReadMsg(ctx)
 		if err != nil {
 			return p2p.NilProtocol, nil, errors.Wrap(err, "message read failed")

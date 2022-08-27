@@ -38,9 +38,9 @@ func (s *Server) registerProtocols(ctx context.Context) {
 				write:        bufio.NewWriter(netStream),
 			}
 
-			rpid, msg, err := handler(ctx, rw)
+			rpid, res, err := handler(ctx, rw)
 			if err != nil {
-				log.Error().Err(err)
+				log.Error().Err(err).Send()
 
 				return
 			}
@@ -52,7 +52,7 @@ func (s *Server) registerProtocols(ctx context.Context) {
 				return
 			}
 
-			if err = Send(ctx, rw, MsgType(rpid), msg); err != nil {
+			if err = Send(ctx, rw, MsgType(rpid), res); err != nil {
 				log.Error().Err(err)
 
 				return

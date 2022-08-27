@@ -3,7 +3,9 @@ module github.com/drgomesp/acervo
 go 1.18
 
 require (
+	github.com/davecgh/go-spew v1.1.1
 	github.com/gogo/protobuf v1.3.2
+	github.com/golang/protobuf v1.5.2
 	github.com/ipfs/go-ipfs-config v0.19.0
 	github.com/joho/godotenv v1.4.0
 	github.com/libp2p/go-libp2p v0.22.0
@@ -46,7 +48,6 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
-	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect

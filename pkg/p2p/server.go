@@ -10,6 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/host"
 	"github.com/libp2p/go-libp2p/core/peer"
 	router "github.com/libp2p/go-libp2p/core/routing"
+	"github.com/libp2p/go-libp2p/p2p/discovery/mdns"
 	"github.com/multiformats/go-multiaddr"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
@@ -44,7 +45,7 @@ type Server struct {
 	peerChan        peerChannels     // peerChan manages channel-sent peers.
 	peersDiscovered map[string]*Peer // peersDiscovered holds the discovered Peer nodes.
 	peersConnected  map[string]*Peer // peersConnected holds recently connected Peer nodes
-	disc            interface{}
+	disc            mdns.Service
 }
 
 type ServerOption func(*Server)
